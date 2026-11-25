@@ -1,0 +1,7 @@
+data/
+.env
+build/
+.gradle/
+local.properties
+*.pyc
+__pycache__/
