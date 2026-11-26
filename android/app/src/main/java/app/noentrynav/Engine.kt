@@ -498,6 +498,10 @@ class Engine(private val ctx: Context) : SegStore {
             val arr = JSONObject(txt).optJSONArray("noentry_reports") ?: JSONArray()
             for (i in 0 until arr.length()) try { reports.add(reportFromJson(arr.getJSONObject(i))) } catch (_: Exception) {}
         } catch (_: Exception) {}
+        try {   // approved reports downloaded from the Sure Shift community sheet (ids start with C-S)
+            val arr = JSONArray(prefs().getString("server_reports", "[]"))
+            for (i in 0 until arr.length()) try { reports.add(reportFromJson(arr.getJSONObject(i))) } catch (_: Exception) {}
+        } catch (_: Exception) {}
         try {
             val arr = JSONArray(prefs().getString("reports", "[]"))
             for (i in 0 until arr.length()) try { reports.add(reportFromJson(arr.getJSONObject(i))) } catch (_: Exception) {}
@@ -522,7 +526,7 @@ class Engine(private val ctx: Context) : SegStore {
         if (len > 8000.0 || len > maxOf(1500.0, straight * 3.0)) return null          // the two points are not on one road
         val segs = pieces.filter { it.seg >= 0 }.map { it.seg }.distinct().toIntArray()
         return Zone(
-            nextReportZoneId++, "U-${r.id}", r.name.ifBlank { "Driver-reported no-entry" }, "Driver report",
+            nextReportZoneId++, "U-${r.id}", r.name.ifBlank { "Driver-reported no-entry" }, if (r.id.startsWith("C-S")) "Verified by Sure Shift" else "Driver report",
             emptyList(), segs, r.vehicles, (1..7).toSet(), r.windows, 0, 99999999, true, r.id
         )
     }
@@ -546,6 +550,7 @@ class Engine(private val ctx: Context) : SegStore {
         reportZoneCache[r.id] = z
         saveReports()
         rebuildZones()
+        queueOutbox(r)
         null
     }
 
@@ -609,6 +614,82 @@ class Engine(private val ctx: Context) : SegStore {
         }
         if (added > 0) { saveReports(); rebuildZones() }
         added
+    }
+
+    // ---- community sheet (Google Sheets + Apps Script, see tools/community_server) ----
+    fun communityEndpoint(): String = try {
+        JSONObject(ctx.assets.open("community_config.json").bufferedReader().use { it.readText() }).optString("endpoint").trim()
+    } catch (_: Exception) { "" }
+
+    fun shareReportsOn(): Boolean = prefs().getBoolean("share_reports", true)
+    fun setShareReports(on: Boolean) { prefs().edit().putBoolean("share_reports", on).apply() }
+
+    private fun deviceId(): String {
+        var id = prefs().getString("device_id", null)
+        if (id == null) { id = java.util.UUID.randomUUID().toString().take(12); prefs().edit().putString("device_id", id).apply() }
+        return id
+    }
+
+    private fun queueOutbox(r: Report) {
+        if (communityEndpoint().isEmpty() || !shareReportsOn()) return
+        try {
+            val arr = JSONArray(prefs().getString("outbox", "[]"))
+            arr.put(reportToJson(r))
+            prefs().edit().putString("outbox", arr.toString()).apply()
+        } catch (_: Exception) {}
+    }
+
+    private fun httpGet(url: String): String? {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.connectTimeout = 10000; conn.readTimeout = 20000
+        conn.instanceFollowRedirects = true
+        conn.setRequestProperty("User-Agent", "NoEntryNav/1.0")
+        if (conn.responseCode != 200) return null
+        val b = conn.inputStream.use { it.readBytes() }
+        return if (b.size > 800_000) null else String(b, Charsets.UTF_8)
+    }
+
+    /** Sends waiting reports to the sheet and downloads the approved ones. Returns true if the approved list changed. */
+    suspend fun syncCommunity(): Boolean = withContext(Dispatchers.IO) {
+        val ep = communityEndpoint()
+        if (ep.isEmpty()) return@withContext false
+        try {
+            // 1. outbox
+            val out = JSONArray(prefs().getString("outbox", "[]"))
+            if (out.length() > 0) {
+                val keep = JSONArray()
+                for (i in 0 until out.length()) {
+                    val o = out.getJSONObject(i)
+                    val ok = try {
+                        val q = "?action=submit&dev=" + deviceId() + "&d=" + java.net.URLEncoder.encode(o.toString(), "UTF-8")
+                        val t = httpGet(ep + q)
+                        t != null && JSONObject(t).optBoolean("ok", false)
+                    } catch (_: Exception) { false }
+                    if (!ok) keep.put(o)
+                }
+                prefs().edit().putString("outbox", keep.toString()).apply()
+            }
+            // 2. approved reports
+            val txt = httpGet(ep) ?: return@withContext false
+            val arr = JSONObject(txt).optJSONArray("noentry_reports") ?: return@withContext false
+            val fresh = ArrayList<Report>()
+            val store = JSONArray()
+            for (i in 0 until arr.length()) try {
+                val o = arr.getJSONObject(i)
+                o.put("id", "C-S" + o.optString("id"))
+                val r = reportFromJson(o)
+                fresh.add(r); store.put(reportToJson(r))
+            } catch (_: Exception) {}
+            val oldIds = reports.filter { it.id.startsWith("C-S") }.map { it.id }.toSet()
+            val newIds = fresh.map { it.id }.toSet()
+            if (oldIds == newIds) return@withContext false
+            reports.removeAll { it.id.startsWith("C-S") }
+            oldIds.forEach { reportZoneCache.remove(it) }
+            reports.addAll(fresh)
+            prefs().edit().putString("server_reports", store.toString()).apply()
+            rebuildZones()
+            true
+        } catch (_: Exception) { false }
     }
 
     // ---- search (places, roads, streets, businesses, with addresses) ----

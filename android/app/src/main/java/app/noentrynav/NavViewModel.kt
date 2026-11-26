@@ -75,7 +75,9 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         if (!manual && _s.value.navigating) return
         _s.update { it.copy(feedBusy = true, feedStatus = if (manual) "Checking for updates…" else null) }
         viewModelScope.launch {
-            val (changed, msg) = try { engine.refreshFeed() } catch (e: Throwable) { Pair(false, "Update failed") }
+            val (feedChanged, msg) = try { engine.refreshFeed() } catch (e: Throwable) { Pair(false, "Update failed") }
+            val sharedChanged = try { engine.syncCommunity() } catch (e: Throwable) { false }
+            val changed = feedChanged || sharedChanged
             _s.update {
                 it.copy(
                     feedBusy = false, feedUpdated = engine.feedUpdated, notices = engine.notices, allZones = engine.allZones,
@@ -354,6 +356,10 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     }
 
     fun clearFormPoint(start: Boolean) { _s.update { if (start) it.copy(reportA = null) else it.copy(reportB = null) } }
+
+    fun communityOn(): Boolean = engine.communityEndpoint().isNotEmpty()
+    fun shareReportsOn(): Boolean = engine.shareReportsOn()
+    fun setShareReports(on: Boolean) = engine.setShareReports(on)
 
     fun clearFormPoints() { _s.update { it.copy(reportA = null, reportB = null) } }
 

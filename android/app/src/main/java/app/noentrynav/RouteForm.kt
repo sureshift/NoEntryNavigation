@@ -91,6 +91,21 @@ fun RouteFormScreen(s: UiState, vm: NavViewModel) {
                 Text("5. Road name (optional)", color = C.Muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(6.dp))
                 FieldBox(name, "e.g. Ring Road near Naraina", { name = it.take(60) }, Modifier.fillMaxWidth())
+                if (vm.communityOn()) {
+                    var share by remember { mutableStateOf(vm.shareReportsOn()) }
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White).border(1.dp, C.Line, RoundedCornerShape(14.dp))
+                            .clickable { share = !share; vm.setShareReports(share) }.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Send to Sure Shift for approval", color = C.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Approved roads reach every driver's phone.", color = C.Muted, fontSize = 12.sp)
+                        }
+                        androidx.compose.material3.Switch(checked = share, onCheckedChange = { share = it; vm.setShareReports(it) })
+                    }
+                }
                 s.message?.let { Spacer(Modifier.height(10.dp)); StatusChip(it, C.DangerBg, C.Danger) }
                 Spacer(Modifier.height(14.dp))
                 val ready = s.reportA != null && s.reportB != null && !s.busy
