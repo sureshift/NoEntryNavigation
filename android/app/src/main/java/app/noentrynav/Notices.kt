@@ -62,6 +62,27 @@ fun RulesScreen(s: UiState, vm: NavViewModel) {
                     Text("Delhi gazette notifications · as of 26 Nov 2026", color = C.Muted, fontSize = 13.sp)
                 }
             }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (s.feedUpdated.isBlank()) "Online updates: not fetched yet" else "Online updates as of ${s.feedUpdated}",
+                        color = C.Muted, fontSize = 13.sp
+                    )
+                    s.feedStatus?.let { Text(it, color = C.Muted, fontSize = 12.sp) }
+                }
+                Row(
+                    Modifier.clip(RoundedCornerShape(14.dp)).background(Color(0xFFEFF6FF))
+                        .clickable(enabled = !s.feedBusy) { vm.refreshFeed(true) }.padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RefreshIcon(C.Primary, 16.dp)
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (s.feedBusy) "Checking…" else "Check for updates", color = C.Primary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             Spacer(Modifier.height(12.dp))
             Box(Modifier.padding(horizontal = 16.dp)) { Segmented(s.vehicle) { vm.setVehicle(it) } }
             Spacer(Modifier.height(12.dp))
@@ -177,7 +198,7 @@ private fun RuleList(s: UiState, vm: NavViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ClockIcon(C.Muted, 16.dp)
                     Spacer(Modifier.width(6.dp))
-                    Text("${z.windowText()} · ${daysText(z.days)}", color = C.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("${z.windowText()} · ${daysText(z.days)}" + (if (z.validTo < 99999999) " · until ${z.validTo % 100}/${(z.validTo / 100) % 100}/${z.validTo / 10000}" else ""), color = C.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
                 if (g.size > 1) {
                     Spacer(Modifier.height(4.dp))
@@ -223,12 +244,14 @@ private fun NoticeList(s: UiState) {
                 val (label, bg, fg) = when (n.kind) {
                     "timing" -> Triple("Timing restriction", C.DangerBg, C.Danger)
                     "entry" -> Triple("Entry permission", Color(0xFFFEF3C7), Color(0xFF92400E))
+                    "temporary" -> Triple("Diversion / temporary", Color(0xFFFEF3C7), Color(0xFF92400E))
                     else -> Triple("Advisory", C.Chip, C.Muted)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     when (n.kind) {
                         "timing" -> ClockIcon(fg, 18.dp)
                         "entry" -> RulesIcon(fg, 18.dp)
+                        "temporary" -> WarnIcon(fg, 18.dp)
                         else -> InfoIcon(fg, 18.dp)
                     }
                     Spacer(Modifier.width(8.dp))

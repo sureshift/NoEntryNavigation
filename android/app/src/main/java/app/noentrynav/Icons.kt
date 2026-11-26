@@ -201,3 +201,29 @@ fun PersonIcon(color: Color, dp: Dp = 18.dp) {
         drawPath(Path().apply { moveTo(w * 0.16f, w * 0.88f); cubicTo(w * 0.16f, w * 0.55f, w * 0.84f, w * 0.55f, w * 0.84f, w * 0.88f) }, color, style = st(w))
     }
 }
+
+@Composable
+fun PlusIcon(color: Color, dp: Dp = 22.dp) {
+    Canvas(Modifier.size(dp)) {
+        val w = size.minDimension
+        drawLine(color, Offset(w * 0.2f, w / 2), Offset(w * 0.8f, w / 2), strokeWidth = w * 0.11f, cap = StrokeCap.Round)
+        drawLine(color, Offset(w / 2, w * 0.2f), Offset(w / 2, w * 0.8f), strokeWidth = w * 0.11f, cap = StrokeCap.Round)
+    }
+}
+
+@Composable
+fun MinusIcon(color: Color, dp: Dp = 22.dp) {
+    Canvas(Modifier.size(dp)) {
+        val w = size.minDimension
+        drawLine(color, Offset(w * 0.2f, w / 2), Offset(w * 0.8f, w / 2), strokeWidth = w * 0.11f, cap = StrokeCap.Round)
+    }
+}
+
+@Composable
+fun RefreshIcon(color: Color, dp: Dp = 18.dp) {
+    Canvas(Modifier.size(dp)) {
+        val w = size.minDimension
+        drawArc(color, 40f, 280f, false, Offset(w * 0.16f, w * 0.16f), Size(w * 0.68f, w * 0.68f), style = st(w))
+        drawPath(Path().apply { moveTo(w * 0.62f, w * 0.1f); lineTo(w * 0.8f, w * 0.26f); lineTo(w * 0.56f, w * 0.34f) }, color, style = st(w))
+    }
+}

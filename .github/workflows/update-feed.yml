@@ -1,0 +1,22 @@
+name: Update advisories feed
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and collect
+        run: |
+          python3 -c "import json;json.load(open('feed/updates.json'))"
+          python3 tools/collect_advisories.py feed/updates.json
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet feed/updates.json; then
+            git config user.name "feed-bot"; git config user.email "feed-bot@users.noreply.github.com"
+            git add feed/updates.json && git commit -m "Update advisories feed" && git push
+          fi

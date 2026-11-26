@@ -2,6 +2,7 @@ name: Build APK
 on:
   push:
     branches: [main]
+    paths-ignore: ["feed/**", ".github/workflows/update-feed.yml"]
   workflow_dispatch: {}
 
 permissions:

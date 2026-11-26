@@ -125,6 +125,13 @@ fun MainScreen(vm: NavViewModel) {
             if (s.pin == null && s.report != ReportStep.DETAILS) {
                 Row(Modifier.fillMaxWidth().padding(end = 14.dp, bottom = 12.dp), horizontalArrangement = Arrangement.End) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.End) {
+                        Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 10.dp) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(Modifier.size(52.dp).clickable { vm.mapController.zoomBy(1.0) }, contentAlignment = Alignment.Center) { PlusIcon(C.Ink) }
+                                Box(Modifier.width(30.dp).height(1.dp).background(C.Line))
+                                Box(Modifier.size(52.dp).clickable { vm.mapController.zoomBy(-1.0) }, contentAlignment = Alignment.Center) { MinusIcon(C.Ink) }
+                            }
+                        }
                         if (!s.navigating) {
                             Box {
                                 RoundButton(onClick = { vm.showRules(true) }) { RulesIcon(C.Ink) }

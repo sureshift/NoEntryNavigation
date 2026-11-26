@@ -7,6 +7,8 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.BitSet
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -17,6 +19,7 @@ import java.util.TimeZone
 class Clock(val dayIso: Int, val minute: Int, val date: Int)
 
 private const val CELL = 0.005   // must match tools/build_data.py
+private const val FEED_URL = "https://raw.githubusercontent.com/sureshift/NoEntryNavigation/main/feed/updates.json"
 
 /** SQL condition selecting grid cells that cover a lat/lon box (row-major cell ids: row*100000+col). */
 private fun cellCond(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double): String {
@@ -47,6 +50,49 @@ class Engine(private val ctx: Context) : SegStore {
     var notices: List<Notice> = emptyList(); private set
     val allZones: List<Zone> get() = zones
     var ruleWarnings: List<String> = emptyList(); private set
+    var feedUpdated: String = ""; private set
+
+    private fun feedFile() = File(ctx.filesDir, "feed.json")
+
+    private fun readFeed(): JSONObject? = try {
+        val f = feedFile()
+        if (f.exists()) JSONObject(f.readText()) else null
+    } catch (_: Exception) { null }
+
+    /**
+     * Download the online update feed (new gazette notifications, temporary no-entry rules, traffic advisories).
+     * Returns a short status line. The app works fully without it; this only adds newer information.
+     */
+    suspend fun refreshFeed(): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        try {
+            val conn = URL(FEED_URL).openConnection() as HttpURLConnection
+            conn.connectTimeout = 8000
+            conn.readTimeout = 12000
+            conn.setRequestProperty("User-Agent", "NoEntryNav/1.0")
+            if (conn.responseCode != 200) return@withContext Pair(false, "Update server answered ${conn.responseCode}")
+            val bytes = conn.inputStream.use { it.readBytes() }
+            if (bytes.size > 600_000) return@withContext Pair(false, "Update file is too large, ignored")
+            val txt = String(bytes, Charsets.UTF_8)
+            val j = JSONObject(txt)                                  // must be valid JSON
+            if (j.optInt("version", 0) != 1) return@withContext Pair(false, "Update file has a newer format. Please update the app.")
+            val old = try { feedFile().takeIf { it.exists() }?.readText() } catch (_: Exception) { null }
+            ctx.getSharedPreferences("noentry", Context.MODE_PRIVATE).edit().putLong("feed_ts", System.currentTimeMillis()).apply()
+            if (old == txt) return@withContext Pair(false, "Already up to date")
+            val tmp = File(ctx.filesDir, "feed.json.tmp")
+            tmp.writeText(txt)
+            if (!tmp.renameTo(feedFile())) { feedFile().writeText(txt); tmp.delete() }
+            loadRules()
+            Pair(true, "Updated")
+        } catch (e: java.net.UnknownHostException) {
+            Pair(false, "No internet connection")
+        } catch (e: java.net.SocketTimeoutException) {
+            Pair(false, "Update server did not respond")
+        } catch (e: Exception) {
+            Pair(false, "Could not read updates (${e.javaClass.simpleName})")
+        }
+    }
+
+    fun lastFeedCheck(): Long = ctx.getSharedPreferences("noentry", Context.MODE_PRIVATE).getLong("feed_ts", 0L)
 
     private fun d(): SQLiteDatabase = db ?: throw IllegalStateException("Map database is not open")
 
@@ -158,22 +204,44 @@ class Engine(private val ctx: Context) : SegStore {
         val ns = ArrayList<Notice>()
         try {
             val root = JSONObject(ctx.assets.open("rules.json").bufferedReader().use { it.readText() })
-            val na = root.optJSONArray("notices") ?: root.optJSONArray("notifications") ?: JSONArray()
-            for (i in 0 until na.length()) try {
-                val o = na.getJSONObject(i)
-                ns.add(Notice(
-                    o.getString("id"), o.optString("kind", "advisory"), o.getString("title"),
-                    o.optString("authority"), o.optString("ref"), o.optString("date"),
-                    o.optString("gazette"), o.optString("summary"), o.optString("url")
-                ))
+            val feed = readFeed()
+            feedUpdated = feed?.optString("updated") ?: ""
+            val noticeSrc = ArrayList<JSONObject>()
+            for (arrName in listOf("notices", "notifications")) {
+                val a = root.optJSONArray(arrName) ?: continue
+                for (i in 0 until a.length()) a.optJSONObject(i)?.let { noticeSrc.add(it) }
+            }
+            if (feed != null) for (arrName in listOf("notifications", "advisories")) {
+                val a = feed.optJSONArray(arrName) ?: continue
+                for (i in 0 until minOf(a.length(), 300)) a.optJSONObject(i)?.let { noticeSrc.add(it) }
+            }
+            val byId = LinkedHashMap<String, Notice>()
+            for (o in noticeSrc) try {
+                val n = Notice(
+                    o.getString("id").take(60), o.optString("kind", "advisory"), o.getString("title").take(200),
+                    o.optString("authority").take(100), o.optString("ref").take(100), o.optString("date").take(20),
+                    o.optString("gazette").take(120), o.optString("summary").take(600), o.optString("url").take(400)
+                )
+                byId[n.id] = n          // later entries (the online feed) replace built-in ones with the same id
             } catch (e: Exception) { warns.add("A notification entry could not be read") }
+            ns.addAll(byId.values.sortedByDescending { it.date })
 
             var nextId = 1L
-            val ra = root.optJSONArray("rules") ?: JSONArray()
-            for (i in 0 until ra.length()) {
-                val o = ra.optJSONObject(i) ?: continue
+            val today = now().date
+            val rules = ArrayList<Pair<JSONObject, Boolean>>()
+            val feedRules = ArrayList<JSONObject>()
+            feed?.optJSONArray("rules")?.let { a -> for (i in 0 until minOf(a.length(), 200)) a.optJSONObject(i)?.let { feedRules.add(it) } }
+            val feedIds = feedRules.map { it.optString("id") }.toSet()
+            root.optJSONArray("rules")?.let { a ->
+                for (i in 0 until a.length()) a.optJSONObject(i)?.let { if (it.optString("id") !in feedIds) rules.add(Pair(it, false)) }
+            }
+            feedRules.forEach { rules.add(Pair(it, true)) }
+            for ((i, pr) in rules.withIndex()) {
+                val o = pr.first
+                val fromFeed = pr.second
                 val rid = o.optString("id", "rule$i")
                 try {
+                    if (o.optInt("until", 99999999) < today) continue            // temporary rule has expired
                     val vs = o.getJSONArray("vehicles")
                     val veh = (0 until vs.length()).map { vs.getString(it) }.toSet()
                     val ds = o.optJSONArray("days")
@@ -183,7 +251,14 @@ class Engine(private val ctx: Context) : SegStore {
                     val eff = o.optInt("effective", 0)
                     val to = o.optInt("until", 99999999)
                     val notif = o.optString("notification")
-                    fun box(a: JSONArray) = doubleArrayOf(a.getDouble(0), a.getDouble(1), a.getDouble(2), a.getDouble(3))
+                    fun box(a: JSONArray): DoubleArray {
+                        val b = doubleArrayOf(a.getDouble(0), a.getDouble(1), a.getDouble(2), a.getDouble(3))
+                        // online rules are sanity-checked so a typo cannot block the whole city
+                        val maxSpan = if (o.optString("kind") == "area") 0.06 else 0.3
+                        require(b[0] < b[2] && b[1] < b[3] && b[0] > 76.5 && b[2] < 77.8 && b[1] > 28.0 && b[3] < 29.2) { "bad bbox" }
+                        require(!fromFeed || (b[2] - b[0] <= maxSpan && b[3] - b[1] <= maxSpan)) { "bbox too large" }
+                        return b
+                    }
                     if (o.optString("kind") == "area") {
                         val areas = o.getJSONArray("areas")
                         for (k in 0 until areas.length()) {

@@ -56,6 +56,20 @@ class MapController {
     private var fitted: Route? = null
     private var centered = false
     private var lastRecenter = 0
+    private var navZoom = 17.0
+
+    /** + / - buttons. While navigating this adjusts the follow-camera zoom, otherwise it zooms the map. */
+    fun zoomBy(d: Double) {
+        val m = map ?: return
+        if (last?.navigating == true) {
+            navZoom = (navZoom + d).coerceIn(12.0, 19.5)
+            last?.me?.let { me ->
+                m.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.Builder().target(LatLng(me.lat, me.lon)).zoom(navZoom).tilt(45.0).bearing(last!!.bearing.toDouble()).build()), 250)
+            }
+        } else {
+            m.animateCamera(CameraUpdateFactory.zoomBy(d), 250)
+        }
+    }
 
     fun attach(map: MapLibreMap, onLongPress: (LatLon) -> Unit, onViewport: (Double, Double, Double, Double, Double) -> Unit) {
         this.map = map
@@ -205,7 +219,7 @@ class MapController {
         }
         if (s.navigating && me != null) {
             val pos = CameraPosition.Builder()
-                .target(LatLng(me.lat, me.lon)).zoom(17.0).tilt(45.0).bearing(s.bearing.toDouble())
+                .target(LatLng(me.lat, me.lon)).zoom(navZoom).tilt(45.0).bearing(s.bearing.toDouble())
                 .build()
             m.animateCamera(CameraUpdateFactory.newCameraPosition(pos), 700)
         } else if (route != null && route !== fitted) {

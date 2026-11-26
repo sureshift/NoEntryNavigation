@@ -1,6 +1,7 @@
-# NoEntry Nav — offline Delhi navigation for LCV, MCV and HCV trucks
+# NoEntry Nav — Delhi navigation for LCV, MCV and HCV trucks
 
-Everything runs on the phone. No server, no internet permission.
+Maps, routing and rules run on the phone and work fully offline. The only internet use is an optional update check
+(`feed/updates.json` from this repo) for new gazette notifications, diversions and temporary no-entry. See `feed/README.md`.
 
 - Roads, places and street names: built from OpenStreetMap into `delhi.db` and bundled in the APK
 - Routing: on-device A* that respects one-ways, HGV bans, height/weight limits and your no-entry zones

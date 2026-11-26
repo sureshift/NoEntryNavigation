@@ -57,6 +57,9 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                     )
                 }
                 refreshZones()
+                _s.update { it.copy(feedUpdated = engine.feedUpdated) }
+                // pick up new gazette notifications / diversions in the background (at most every 6 hours)
+                if (System.currentTimeMillis() - engine.lastFeedCheck() > 6 * 3600_000L) refreshFeed(manual = false)
             } catch (e: Throwable) {
                 _s.update { it.copy(ready = false, message = null, loadError = e.message ?: "Map data could not be loaded") }
             }
@@ -64,6 +67,26 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     }
 
     fun retryLoad() = load()
+
+    /** Fetch new gazette notifications and Delhi Traffic Police diversions / temporary no-entry from the online feed. */
+    fun refreshFeed(manual: Boolean = true) {
+        if (_s.value.feedBusy || !_s.value.ready) return
+        if (!manual && _s.value.navigating) return
+        _s.update { it.copy(feedBusy = true, feedStatus = if (manual) "Checking for updates…" else null) }
+        viewModelScope.launch {
+            val (changed, msg) = try { engine.refreshFeed() } catch (e: Throwable) { Pair(false, "Update failed") }
+            _s.update {
+                it.copy(
+                    feedBusy = false, feedUpdated = engine.feedUpdated, notices = engine.notices, allZones = engine.allZones,
+                    feedStatus = if (manual || changed) msg else null
+                )
+            }
+            if (changed) {
+                refreshZones()
+                if (!_s.value.navigating && _s.value.dest != null) requestRoute()
+            }
+        }
+    }
 
     fun dismissCrash() { _s.update { it.copy(crash = null) } }
 
