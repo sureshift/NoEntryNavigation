@@ -3,6 +3,7 @@ package app.noentrynav
 import java.util.BitSet
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 interface SegStore {
     fun geom(seg: Int): List<LatLon>
@@ -151,7 +152,7 @@ object Planner {
         var time = 0.0
         for (pc in pieces) time += polyLen(pc.pts) / (max(5.0, pc.speedKph) * p.speedFactor / 3.6)
 
-        class M(val text: String, val idx: Int)
+        class M(val text: String, val idx: Int, val turn: Int = 0, val arrive: Boolean = false)
         val ms = ArrayList<M>()
         val hb = Geo.bearing(pts[0], pts[fwdIdx(pts, 0)])
         val firstName = pieces.firstOrNull()?.name ?: ""
@@ -179,15 +180,15 @@ object Planner {
             } else if (nm.isNotBlank() && prevNm.isNotBlank() && nm != prevNm) {
                 "Continue onto $nm"
             } else continue
-            ms.add(M(text, joint))
+            ms.add(M(text, joint, d.roundToInt()))
         }
-        ms.add(M("You have arrived at your destination", pts.size - 1))
+        ms.add(M("You have arrived at your destination", pts.size - 1, 0, true))
 
         val maneuvers = ms.mapIndexed { k, m ->
             val len = if (k + 1 < ms.size) (cum[ms[k + 1].idx] - cum[m.idx]) / 1000.0 else 0.0
             val verbal = if (k == 0 || k == ms.size - 1) m.text
             else "In 250 metres, " + m.text.replaceFirstChar { it.lowercase() }
-            Maneuver(m.text, verbal, m.idx, len)
+            Maneuver(m.text, verbal, m.idx, len, m.turn, m.arrive)
         }
         return Route(pts, cum, maneuvers, cum.last() / 1000.0, time, applied)
     }

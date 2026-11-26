@@ -38,7 +38,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
 // Fully offline: plain background, roads are drawn from the on-device database.
 private const val STYLE_JSON = """
 {"version":8,"sources":{},
- "layers":[{"id":"bg","type":"background","paint":{"background-color":"#EFEBE4"}}]}
+ "layers":[{"id":"bg","type":"background","paint":{"background-color":"#F1F3F5"}}]}
 """
 
 private const val EMPTY_FC = """{"type":"FeatureCollection","features":[]}"""
@@ -52,6 +52,7 @@ class MapController {
     private var shownRoads: Roads? = null
     private var fitted: Route? = null
     private var centered = false
+    private var lastRecenter = 0
 
     fun attach(map: MapLibreMap, onLongPress: (LatLon) -> Unit, onViewport: (Double, Double, Double, Double, Double) -> Unit) {
         this.map = map
@@ -62,39 +63,39 @@ class MapController {
             st.addSource(GeoJsonSource("roads-main", EMPTY_FC))
             st.addSource(GeoJsonSource("roads-major", EMPTY_FC))
             val round = arrayOf(lineCap(Property.LINE_CAP_ROUND), lineJoin(Property.LINE_JOIN_ROUND))
-            st.addLayer(LineLayer("rc-local", "roads-local").withProperties(lineColor("#CFC7BC"), lineWidth(4f), *round))
-            st.addLayer(LineLayer("rc-main", "roads-main").withProperties(lineColor("#B9AFA2"), lineWidth(6.5f), *round))
-            st.addLayer(LineLayer("rc-major", "roads-major").withProperties(lineColor("#C98A1B"), lineWidth(8f), *round))
+            st.addLayer(LineLayer("rc-local", "roads-local").withProperties(lineColor("#E1E5EA"), lineWidth(4f), *round))
+            st.addLayer(LineLayer("rc-main", "roads-main").withProperties(lineColor("#D3D8DE"), lineWidth(6.5f), *round))
+            st.addLayer(LineLayer("rc-major", "roads-major").withProperties(lineColor("#E8B54A"), lineWidth(8f), *round))
             st.addLayer(LineLayer("rf-local", "roads-local").withProperties(lineColor("#FFFFFF"), lineWidth(2.4f), *round))
-            st.addLayer(LineLayer("rf-main", "roads-main").withProperties(lineColor("#FFF3D6"), lineWidth(4.5f), *round))
-            st.addLayer(LineLayer("rf-major", "roads-major").withProperties(lineColor("#FFC24A"), lineWidth(6f), *round))
+            st.addLayer(LineLayer("rf-main", "roads-main").withProperties(lineColor("#FFFFFF"), lineWidth(4.5f), *round))
+            st.addLayer(LineLayer("rf-major", "roads-major").withProperties(lineColor("#FFD66B"), lineWidth(6f), *round))
             st.addSource(GeoJsonSource("zones", EMPTY_FC))
-            st.addLayer(FillLayer("zones-fill", "zones").withProperties(fillColor("#E53935"), fillOpacity(0.25f)))
-            st.addLayer(LineLayer("zones-line", "zones").withProperties(lineColor("#B71C1C"), lineWidth(1.5f)))
+            st.addLayer(FillLayer("zones-fill", "zones").withProperties(fillColor("#EF4444"), fillOpacity(0.18f)))
+            st.addLayer(LineLayer("zones-line", "zones").withProperties(lineColor("#DC2626"), lineWidth(2f)))
             st.addSource(GeoJsonSource("route", EMPTY_FC))
             st.addLayer(
                 LineLayer("route-casing", "route").withProperties(
-                    lineColor("#0D47A1"), lineWidth(9f),
+                    lineColor("#FFFFFF"), lineWidth(11f),
                     lineCap(Property.LINE_CAP_ROUND), lineJoin(Property.LINE_JOIN_ROUND)
                 )
             )
             st.addLayer(
                 LineLayer("route-line", "route").withProperties(
-                    lineColor("#2196F3"), lineWidth(5.5f),
+                    lineColor("#2563EB"), lineWidth(6.5f),
                     lineCap(Property.LINE_CAP_ROUND), lineJoin(Property.LINE_JOIN_ROUND)
                 )
             )
             st.addSource(GeoJsonSource("dest", EMPTY_FC))
             st.addLayer(
                 CircleLayer("dest-dot", "dest").withProperties(
-                    circleColor("#D32F2F"), circleRadius(9f),
+                    circleColor("#111827"), circleRadius(9f),
                     circleStrokeColor("#FFFFFF"), circleStrokeWidth(3f)
                 )
             )
             st.addSource(GeoJsonSource("me", EMPTY_FC))
             st.addLayer(
                 CircleLayer("me-dot", "me").withProperties(
-                    circleColor("#1E88E5"), circleRadius(8f),
+                    circleColor("#2563EB"), circleRadius(8f),
                     circleStrokeColor("#FFFFFF"), circleStrokeWidth(3f)
                 )
             )
@@ -142,6 +143,17 @@ class MapController {
 
         val me = s.me
         val route = s.route
+        if (s.recenter != lastRecenter) {
+            lastRecenter = s.recenter
+            if (me != null && !s.navigating) {
+                m.animateCamera(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.Builder().target(LatLng(me.lat, me.lon)).zoom(15.5).bearing(0.0).tilt(0.0).build()
+                    ), 600
+                )
+                return
+            }
+        }
         if (s.navigating && me != null) {
             val pos = CameraPosition.Builder()
                 .target(LatLng(me.lat, me.lon)).zoom(17.0).tilt(45.0).bearing(s.bearing.toDouble())
@@ -151,7 +163,7 @@ class MapController {
             fitted = route
             val b = LatLngBounds.Builder()
             route.points.forEach { b.include(LatLng(it.lat, it.lon)) }
-            m.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 80, 260, 80, 520), 800)
+            m.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 90, 220, 90, 600), 800)
         } else if (route == null) {
             fitted = null
             if (!centered && me != null) {

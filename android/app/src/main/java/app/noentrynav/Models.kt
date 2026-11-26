@@ -1,7 +1,14 @@
 package app.noentrynav
 
 data class LatLon(val lat: Double, val lon: Double)
-data class Maneuver(val text: String, val verbal: String, val beginIdx: Int, val lengthKm: Double)
+data class Maneuver(
+    val text: String,
+    val verbal: String,
+    val beginIdx: Int,
+    val lengthKm: Double,
+    val turn: Int = 0,          // signed degrees, positive = right
+    val arrive: Boolean = false
+)
 data class Zone(
     val id: Long,
     val name: String,
@@ -53,6 +60,10 @@ data class UiState(
     val navigating: Boolean = false,
     val nextText: String = "",
     val nextDistM: Double = 0.0,
+    val nextTurn: Int = 0,
+    val nextArrive: Boolean = false,
+    val muted: Boolean = false,
+    val recenter: Int = 0,
     val remainingM: Double = 0.0,
     val results: List<Place> = emptyList(),
     val ready: Boolean = false,

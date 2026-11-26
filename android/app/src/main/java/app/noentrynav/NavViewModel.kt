@@ -74,7 +74,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
     }
 
     private fun speak(text: String) {
-        if (ttsReady && text.isNotBlank()) tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "nav")
+        if (ttsReady && !_s.value.muted && text.isNotBlank()) tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "nav")
     }
 
     // ---------- Location ----------
@@ -200,6 +200,15 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
         _s.value.me?.let { updateProgress(it) }
     }
 
+    fun recenter() {
+        _s.update { it.copy(recenter = it.recenter + 1) }
+    }
+
+    fun toggleMute() {
+        tts?.stop()
+        _s.update { it.copy(muted = !it.muted) }
+    }
+
     fun stopNav() {
         tts?.stop()
         _s.update { it.copy(navigating = false) }
@@ -245,7 +254,9 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
         val dM = (r.cum[m.beginIdx.coerceIn(0, pts.size - 1)] - along).coerceAtLeast(0.0)
         if (dM <= 250.0 && announced.add(mi * 2)) speak(m.verbal)
         if (dM <= 35.0 && announced.add(mi * 2 + 1)) speak(m.text)
-        _s.update { it.copy(nextText = m.text, nextDistM = dM, remainingM = remaining) }
+        _s.update {
+            it.copy(nextText = m.text, nextDistM = dM, nextTurn = m.turn, nextArrive = m.arrive, remainingM = remaining)
+        }
         maybeCheckZones()
     }
 
