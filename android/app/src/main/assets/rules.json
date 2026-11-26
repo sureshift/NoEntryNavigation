@@ -1,41 +1,1633 @@
 {
-  "version": 1,
-  "updated": "2026-11-26",
-  "notifications": [
-    {"id":"TD-2021-70257","kind":"timing","title":"Restriction on plying of goods vehicles on notified roads of Delhi","authority":"Transport Department, GNCT of Delhi","ref":"F.19(183)/Tpt./Sectt./2017/70257","date":"2021-08-03","gazette":"Delhi Gazette Extraordinary, Part IV, No. 215 (4 Aug 2021)","summary":"Issued under Section 115 of the Motor Vehicles Act. Restricts goods vehicles (HGV, MGV, LGV) on listed roads during notified hours.","url":"https://traffic.delhipolice.gov.in/sites/default/files/uploads/2022/04.11.2022.pdf"},
-    {"id":"TD-2022-74376","kind":"timing","title":"Amendment to the 2021 goods-vehicle restriction notification","authority":"Transport Department, GNCT of Delhi","ref":"F.19(183)/Tpt./Sectt./2017/74376","date":"2022-08-12","gazette":"Delhi Gazette No. 389 (Aug 2022)","summary":"Revises the road list and hours. Peak hours 07:00-11:00 and 17:00-23:00 on the listed roads; 12:30-20:00 in notified market areas; e-LGVs (L5N, N1) exempt. This app uses the schedule as amended.","url":"https://traffic.delhipolice.gov.in/sites/default/files/uploads/2022/04.11.2022.pdf"},
-    {"id":"DTP-2024-HP2","kind":"timing","title":"Uniform day-time hours for goods-vehicle restrictions","authority":"Delhi Traffic Police","ref":"F.No. 20/4/2003/HP-II","date":"2024-06-21","gazette":"Delhi Gazette No. 165 (27 Jun 2024)","summary":"Day-time restriction hours fixed at 07:00-23:00. Peak hours 07:00-11:00 and 17:00-23:00 for HGV, MGV and LGV where such restrictions exist. Not a city-wide ban.","url":"https://traffic.delhipolice.gov.in/sites/default/files/uploads/2024/01-07-2024.pdf"},
-    {"id":"NEP-368","kind":"entry","title":"No Entry Permission for goods vehicles","authority":"Delhi Traffic Police","ref":"","date":"2023-01-01","gazette":"","summary":"Goods vehicles needing to enter during restricted hours must hold a No Entry Permission from Delhi Traffic Police. The app does not issue or check permissions.","url":"https://traffic.delhipolice.gov.in/nep/index.php"},
-    {"id":"DTP-LEGACY","kind":"advisory","title":"Earlier road-wise notifications (1996-2017)","authority":"Delhi Traffic Police","ref":"Various","date":"2017-01-01","gazette":"Various","summary":"Older per-road notifications are listed on the Delhi Traffic Police site. They are NOT yet encoded in this app. Check the site for roads not shown here.","url":"https://traffic.delhipolice.gov.in/node/41"}
-  ],
-  "rules": [
-    {"id":"R01","notification":"TD-2022-74376","name":"Agra Canal Road (Kalindi Kunj to Faridabad border)","kind":"road","names":["Agra Canal"],"bbox":[77.28,28.46,77.36,28.56],"vehicles":["lcv","mcv","hcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R02","notification":"TD-2022-74376","name":"Pataudi House Road, Daryaganj","kind":"road","names":["Pataudi House"],"bbox":[77.232,28.636,77.248,28.648],"vehicles":["lcv","mcv","hcv"],"windows":[["12:00","15:00"]],"effective":20220812},
-    {"id":"R03","notification":"TD-2022-74376","name":"Phirni / Circular Road, Najafgarh (HGV and MGV)","kind":"road","names":["Phirni","Circular Road"],"bbox":[76.955,28.59,77.005,28.628],"vehicles":["mcv","hcv"],"windows":[["07:00","23:00"]],"effective":20220812},
-    {"id":"R03L","notification":"TD-2022-74376","name":"Phirni / Circular Road, Najafgarh (LGV peak hours)","kind":"road","names":["Phirni","Circular Road"],"bbox":[76.955,28.59,77.005,28.628],"vehicles":["lcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R04","notification":"TD-2022-74376","name":"Dhansa Road","kind":"road","names":["Dhansa"],"bbox":[76.90,28.565,76.99,28.62],"vehicles":["lcv","mcv","hcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R05","notification":"TD-2022-74376","name":"Bahadurgarh Road","kind":"road","names":["Bahadurgarh"],"bbox":[76.90,28.60,77.00,28.70],"vehicles":["lcv","mcv","hcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R06","notification":"TD-2022-74376","name":"Nangloi Road","kind":"road","names":["Nangloi"],"bbox":[76.97,28.59,77.07,28.69],"vehicles":["lcv","mcv","hcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R07","notification":"TD-2022-74376","name":"Shivaji Marg / Najafgarh Road","kind":"road","names":["Shivaji Marg","Najafgarh Road"],"bbox":[76.975,28.595,77.088,28.645],"vehicles":["lcv","mcv","hcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R08","notification":"TD-2022-74376","name":"Najafgarh Road (Vikas Puri Outer Ring Road to Najafgarh drain)","kind":"road","names":["Najafgarh Road","Najafgarh Rd"],"bbox":[76.96,28.60,77.10,28.65],"vehicles":["lcv","mcv","hcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R09","notification":"TD-2022-74376","name":"Rohtak Road (Tikri border to Peeragarhi)","kind":"road","names":["Rohtak Road","Rohtak Rd"],"bbox":[76.93,28.655,77.10,28.705],"vehicles":["lcv","mcv","hcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R10","notification":"TD-2022-74376","name":"Main Nangloi-Najafgarh Road (Nangloi Chowk to Rishal Garden)","kind":"road","names":["Najafgarh Nangloi","Nangloi Najafgarh","Nangloi - Najafgarh"],"bbox":[76.97,28.59,77.07,28.69],"vehicles":["lcv","mcv","hcv"],"windows":[["07:00","11:00"],["17:00","23:00"]],"effective":20220812},
-    {"id":"R11","notification":"TD-2022-74376","name":"Barapulla Road (Ring Road near INA to Sarai Kale Khan), 24 hours","kind":"road","names":["Barapullah","Barapulla","Bara Pulla"],"bbox":[77.20,28.565,77.27,28.60],"vehicles":["lcv","mcv","hcv"],"windows":[["00:00","24:00"]],"effective":20220812},
-    {"id":"R12","notification":"TD-2022-74376","name":"Notified market area","kind":"area","vehicles":["lcv","mcv","hcv"],"windows":[["12:30","20:00"]],"effective":20220812,
-     "areas":[
-       {"name":"Karol Bagh market","bbox":[77.178,28.642,77.195,28.655]},
-       {"name":"Sadar Bazar market","bbox":[77.205,28.653,77.220,28.667]},
-       {"name":"Kamla Nagar market","bbox":[77.200,28.678,77.212,28.690]},
-       {"name":"Gandhi Nagar market","bbox":[77.262,28.654,77.280,28.670]},
-       {"name":"Vikas Marg market stretch","bbox":[77.265,28.625,77.310,28.640]},
-       {"name":"Sarojini Nagar market","bbox":[77.190,28.568,77.205,28.581]},
-       {"name":"Green Park market","bbox":[77.196,28.553,77.212,28.568]},
-       {"name":"Lajpat Nagar market","bbox":[77.230,28.562,77.250,28.580]},
-       {"name":"Yusuf Sarai market","bbox":[77.200,28.545,77.216,28.560]},
-       {"name":"Mahipalpur market","bbox":[77.115,28.535,77.135,28.555]},
-       {"name":"Rajouri Garden market","bbox":[77.110,28.640,77.130,28.655]},
-       {"name":"Tilak Nagar market","bbox":[77.082,28.633,77.100,28.648]},
-       {"name":"Dwarka Sector 10 market","bbox":[77.040,28.575,77.055,28.590]}
-     ]}
-  ]
+ "version": 1,
+ "updated": "2026-11-26",
+ "notifications": [
+  {
+   "id": "TD-2021-70257",
+   "kind": "timing",
+   "title": "Restriction on plying of goods vehicles on notified roads of Delhi",
+   "authority": "Transport Department, GNCT of Delhi",
+   "ref": "F.19(183)/Tpt./Sectt./2017/70257",
+   "date": "2021-08-03",
+   "gazette": "Delhi Gazette Extraordinary, Part IV, No. 215 (4 Aug 2021)",
+   "summary": "Issued under Section 115 of the Motor Vehicles Act. Restricts goods vehicles (HGV, MGV, LGV) on listed roads during notified hours.",
+   "url": "https://traffic.delhipolice.gov.in/sites/default/files/uploads/2022/04.11.2022.pdf"
+  },
+  {
+   "id": "TD-2022-74376",
+   "kind": "timing",
+   "title": "Amendment to the 2021 goods-vehicle restriction notification",
+   "authority": "Transport Department, GNCT of Delhi",
+   "ref": "F.19(183)/Tpt./Sectt./2017/74376",
+   "date": "2022-08-12",
+   "gazette": "Delhi Gazette No. 389 (Aug 2022)",
+   "summary": "Revises the road list and hours. Peak hours 07:00-11:00 and 17:00-23:00 on the listed roads; 12:30-20:00 in notified market areas; e-LGVs (L5N, N1) exempt. This app uses the schedule as amended.",
+   "url": "https://traffic.delhipolice.gov.in/sites/default/files/uploads/2022/04.11.2022.pdf"
+  },
+  {
+   "id": "DTP-2024-HP2",
+   "kind": "timing",
+   "title": "Uniform day-time hours for goods-vehicle restrictions",
+   "authority": "Delhi Traffic Police",
+   "ref": "F.No. 20/4/2003/HP-II",
+   "date": "2024-06-21",
+   "gazette": "Delhi Gazette No. 165 (27 Jun 2024)",
+   "summary": "Day-time restriction hours fixed at 07:00-23:00. Peak hours 07:00-11:00 and 17:00-23:00 for HGV, MGV and LGV where such restrictions exist. Not a city-wide ban.",
+   "url": "https://traffic.delhipolice.gov.in/sites/default/files/uploads/2024/01-07-2024.pdf"
+  },
+  {
+   "id": "NEP-368",
+   "kind": "entry",
+   "title": "No Entry Permission for goods vehicles",
+   "authority": "Delhi Traffic Police",
+   "ref": "",
+   "date": "2023-01-01",
+   "gazette": "",
+   "summary": "Goods vehicles needing to enter during restricted hours must hold a No Entry Permission from Delhi Traffic Police. The app does not issue or check permissions.",
+   "url": "https://traffic.delhipolice.gov.in/nep/index.php"
+  },
+  {
+   "id": "DTP-LEGACY",
+   "kind": "advisory",
+   "title": "Earlier road-wise notifications (1996-2017)",
+   "authority": "Delhi Traffic Police",
+   "ref": "Various",
+   "date": "2017-01-01",
+   "gazette": "Various",
+   "summary": "Older road-wise no-entry notifications (1996-2023) are listed below, one by one, from the official Delhi Traffic Police index. They are information only and are NOT applied to routing, because the stretches and timings are only in the original orders.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-151",
+   "kind": "advisory",
+   "title": "Restriction on entry of all passenger buses in Delhi during GRAP Stage IV.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.6618-6680/TE(D-I)/Traffic dated at New Delhi, the 24-11-2023",
+   "date": "2023-11-24",
+   "gazette": "Index item 151",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 151). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-10",
+   "kind": "advisory",
+   "title": "Restriction on plying of Maruti Ecco goods carriage plying shall be restricted only from 0700 to 1100...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.1830-1918/TE(D-II) dated 21-06-2019",
+   "date": "2019-06-21",
+   "gazette": "Index item 10",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 10). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-12",
+   "kind": "advisory",
+   "title": "Restriction on goods vehicles on Najafgarh Firni Road /Circular Road and other connecting roads.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.5195-5345/TE(D-II) dated 29-06-2018",
+   "date": "2018-06-29",
+   "gazette": "Index item 12",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 12). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-20",
+   "kind": "advisory",
+   "title": "The no Entry, Plying & parking of HGV,MGV & LGV on Pautodi House Road, Darya Ganj from T-Point Kasturba Hotel...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 7299-7449/TE(D-II) dated 19-09-2017",
+   "date": "2017-09-19",
+   "gazette": "Index item 20",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 20). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-22",
+   "kind": "advisory",
+   "title": "Movement of HTV,MGV & LGVs on Agra Canal Road from Kalandi Kunj to Faridabad Border prohibited from 7-11 AM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 4388-4638/TE(D-II) dated 22-06-2017",
+   "date": "2017-06-22",
+   "gazette": "Index item 22",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 22). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-25",
+   "kind": "advisory",
+   "title": "The movement of HTV, LGV & MGV in the Bhati Mines Road from Anuwart Marg to Sanjay Colony...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 7639-7789/TE(D-II) & 7791-7942/TE(D-II) dated 07-12-2016",
+   "date": "2016-12-07",
+   "gazette": "Index item 25",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 25). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-34",
+   "kind": "advisory",
+   "title": "Amended Notification of Transport Department, GNCT of Delhi regarding No Entry Timing for Goods Vehicles.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 1135-1161/TE(D-II) dated 23-02-2016",
+   "date": "2016-02-23",
+   "gazette": "Index item 34",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 34). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-37",
+   "kind": "advisory",
+   "title": "Order regarding restriction on plying of HVG/MGV on stretches of Delhi Old Rohtak Road Usha Mata Mandir...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8906-9056/TE-(D-II), Traffic, dated 09-12-2015",
+   "date": "2015-12-09",
+   "gazette": "Index item 37",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 37). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-39",
+   "kind": "advisory",
+   "title": "Order regarding restriction on plying of Maruti Eeco Flexi (Goods Carriage) vehicles during No Entry Timings...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8601-8676/TE-(D-II), Traffic, dated 01-12-2015",
+   "date": "2015-12-01",
+   "gazette": "Index item 39",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 39). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-43",
+   "kind": "advisory",
+   "title": "Notification regarding Movement of goods vehicles on GTB Hospital Raod.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.1111-1260/TE-(D-II), Traffic, dated 12-02-2015",
+   "date": "2015-02-12",
+   "gazette": "Index item 43",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 43). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-147",
+   "kind": "advisory",
+   "title": "Restriction on HGV/MGV/LGV on the roads of Dwarka sub city, Delhi.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 2123-2225 TE(D-II) dated 29-04-2014",
+   "date": "2014-04-29",
+   "gazette": "Index item 147",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 147). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-53",
+   "kind": "advisory",
+   "title": "Notification regarding HGV/LGV prohibited the entry on hospital road haqiqat rai marg and link road.13-01-2014",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "",
+   "date": "2014-01-13",
+   "gazette": "Index item 53",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 53). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-69",
+   "kind": "advisory",
+   "title": "Prohibiting the entry plying and idle parking of heavy and medium goods vehicles on noida toll road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.1736-1885/TE(D-II)/Traffic,dt.27.2.2013",
+   "date": "2013-02-27",
+   "gazette": "Index item 69",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 69). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-70",
+   "kind": "advisory",
+   "title": "Prohibiting the entry plying and idle parking of heavy and medium goods vehicles on mathura road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.1586-1735/TE(D-II)/Traffic,dt.27.2.2013",
+   "date": "2013-02-27",
+   "gazette": "Index item 70",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 70). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-71",
+   "kind": "advisory",
+   "title": "Prohibiting the entry plying and idle parking of heavy and medium goods vehicles during peak hours...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.920-1070/TE(D-II),dt.1.2.2013",
+   "date": "2013-02-01",
+   "gazette": "Index item 71",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 71). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-72",
+   "kind": "advisory",
+   "title": "Prohibiting the entry plying and idle parking of heavy and medium goods vehicles on noida toll road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.751-900/TE(D-II),dt.31.01.2013",
+   "date": "2013-01-31",
+   "gazette": "Index item 72",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 72). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-74",
+   "kind": "advisory",
+   "title": "Prohibiting the entry plying and idle parking of heavy and medium goods vehicles on mathura road from badarpur...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.305-455/TE(D-II),dt.17.1.2013",
+   "date": "2013-01-17",
+   "gazette": "Index item 74",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 74). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-55",
+   "kind": "advisory",
+   "title": "STANDING ORDER NO.368/2012 Reg lssue of permissions to ply goods vehicles carrying essential perishable goods etc. during restricted hours/areas.25-07-2012",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "Standing Order 368/2012",
+   "date": "2012-07-25",
+   "gazette": "Index item 55",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 55). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-75",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of HGVs,MGVs & LGVs on 60 foota road vishwas nagar shahdara...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.3096-3245/TE(D-II),dt.17.07.2012",
+   "date": "2012-07-17",
+   "gazette": "Index item 75",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 75). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-77",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of all type of trailers entering from neighbouring states...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.3228-3378/TE(D-II),dt.10.3.2010",
+   "date": "2010-03-10",
+   "gazette": "Index item 77",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 77). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-78",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of HGVs,MGVs & LGVs during peak hours on outer ring road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.3977-4125/TE(D-II),dt.16.7.2009",
+   "date": "2009-07-16",
+   "gazette": "Index item 78",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 78). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-79",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of HGVs, MGVs & LGVs on main roads going inside sangam vihar...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.3290-3460/TE(D-II),dt.12.6.2009",
+   "date": "2009-06-12",
+   "gazette": "Index item 79",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 79). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-73",
+   "kind": "advisory",
+   "title": "Prohibiting the entry plying and idle parking of heavy and medium goods vehicles during peak hours from 7.00 AM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No./TE(D-II),dt.8.12.2008",
+   "date": "2008-12-08",
+   "gazette": "Index item 73",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 73). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-80",
+   "kind": "advisory",
+   "title": "Prohibiting the plying of HGVs,MGVs & LGVs on IGNOU road (from 'T' point M.B road to indira gandhi national open university...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.9579-9729/TE(D-II),dt.8.12.2008",
+   "date": "2008-12-08",
+   "gazette": "Index item 80",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 80). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-81",
+   "kind": "advisory",
+   "title": "Prohibiting the plying LGVs on mehrauli-madarpur road (from 'T' point) from 8.00 AM to 11.00 AM and from 5.00 PM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.9428-9578/TE(D-II),dt.8.12.2008",
+   "date": "2008-12-08",
+   "gazette": "Index item 81",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 81). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-82",
+   "kind": "advisory",
+   "title": "Prohibiting the plying of LGVs on BRT corridor on Dr.Ambedkar road to moolchand hospital for 24 hours.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.F.19(69)/Tpt./Sectt./08/427,dt.7.5.2008",
+   "date": "2008-05-07",
+   "gazette": "Index item 82",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 82). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-83",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of LGVs from 8.00 AM to 9.00 PM on vikas marg from chugi gandhi nagar...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8575-8765/TE(D-II),dt.10.10.2006",
+   "date": "2006-10-10",
+   "gazette": "Index item 83",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 83). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-84",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of LGVs on mathura road (from ashram chowk to badarpur border)...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8766-8956/TE(D-II),dt.10.10.2006",
+   "date": "2006-10-10",
+   "gazette": "Index item 84",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 84). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-85",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of LGVs from 8.00 AM to 9.00 PM on the roads falling in the area of NDMC.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8384-8574/TE(D-II),dt.10.10.2006",
+   "date": "2006-10-10",
+   "gazette": "Index item 85",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 85). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-86",
+   "kind": "advisory",
+   "title": "Restriction on plying of three vehicular light goods vehicles to ply on delhi roads from 8.00 AM to 11.00 AM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.F.19(183)/Tpt./Sectt./05/232,dt.9.6.2006",
+   "date": "2006-06-09",
+   "gazette": "Index item 86",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 86). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-87",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of HGVs and MGVs on the specified roads/road stretches.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.4867-5057/TE(D-II),dt.6.6.2006",
+   "date": "2006-06-06",
+   "gazette": "Index item 87",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 87). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-88",
+   "kind": "advisory",
+   "title": "Restriction on plying of LGVs running not on clean fuel (other than CNG).",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.F.19(22)/Tpt./Sectt./2006/197,dt.26.5.2006",
+   "date": "2006-05-26",
+   "gazette": "Index item 88",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 88). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-89",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of HTVs,MGVs and LGVs from 7.30 AM to 10 PM on jaswant marg and ratia marg...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.3681-3871/TE(D-II),dt.11.5.2006",
+   "date": "2006-05-11",
+   "gazette": "Index item 89",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 89). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-90",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of heavy goods vehicles for 24 hours on the specified roads.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.3307-3496/TE(D-II),dt.5.5.2006",
+   "date": "2006-05-05",
+   "gazette": "Index item 90",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 90). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-90B",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of HGVs/MGVs and LGVs from 8.00 AM to 11.00 AM and from 5.00 PM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.1102-1292/TE(D-II),dt.16.2.2006",
+   "date": "2006-02-16",
+   "gazette": "Index item 90B",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 90B). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-91",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of HGVs/LGVs during peak hours on new palam road from R/A mehram nagar to dwarka...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.768-958/TE(D-II),dt.7.2.2006",
+   "date": "2006-02-07",
+   "gazette": "Index item 91",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 91). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-92",
+   "kind": "advisory",
+   "title": "Restriction on plying of three vehicular light goods vehicles to ply on delhi road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.F19(183)/Tpt./Sectt./05/1428,dt.29.12.2005",
+   "date": "2005-12-29",
+   "gazette": "Index item 92",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 92). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-93",
+   "kind": "advisory",
+   "title": "Prohibit the plying from neighbouring states on all roads of delhi except that they can enter and exit delhi via badarpur border...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.11009/TE(D-II),dt.21.12.2005",
+   "date": "2005-12-21",
+   "gazette": "Index item 93",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 93). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-94",
+   "kind": "advisory",
+   "title": "Prohibiting the plying and idle parking of HGVs/MGVs and LGVs on the specified roads.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.10649-10839/TE(D-II),dt.12.12.2005",
+   "date": "2005-12-12",
+   "gazette": "Index item 94",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 94). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-95",
+   "kind": "advisory",
+   "title": "Revised to prohibit the plying and idle parking of HGVs MGVs & LGVs from palam fatak old gurgaon road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.9243-9432/TE(D-II),dt.28.9.2005",
+   "date": "2005-09-28",
+   "gazette": "Index item 95",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 95). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-96",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of heavy & medium goods vehicles for 24 hours and light goods vehicles...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8648-8837/TE(D-II),dt.8.9.2005",
+   "date": "2005-09-08",
+   "gazette": "Index item 96",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 96). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-97",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of heavy medium and light goods vehicles from 8 AM to 10 PM on sultan puri road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8432-8621/TE(D-II),dt.7.9.2005",
+   "date": "2005-09-07",
+   "gazette": "Index item 97",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 97). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-98",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of HGVs for 24 hours of the day on link road connecting mathura road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.7790-7980/TE(D-II),dt.24.8.2005",
+   "date": "2005-08-24",
+   "gazette": "Index item 98",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 98). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-99",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of MGVs and LGVs from 9 AM to 9 PM on the entry points towards connaught place...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.7502-7691/TE(D-II),dt.22.8.2005",
+   "date": "2005-08-22",
+   "gazette": "Index item 99",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 99). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-100",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of HGVs on the specified roads from 7.30 AM to 11.00 AM and from 5.00 PM to 11.00 PM.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.6687-6877/TE(D-II),dt.4.8.2005",
+   "date": "2005-08-04",
+   "gazette": "Index item 100",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 100). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-101",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of HGVs for 24 hours of the day on upper ridge road from dhaula kuan...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.6266-6456/TE(D-II),dt.26.7.2005",
+   "date": "2005-07-26",
+   "gazette": "Index item 101",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 101). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-102",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of HGVs LGVs on the specified roads till further orders",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.5560-5750/TE(D-II),dt.30.6.2005",
+   "date": "2005-06-30",
+   "gazette": "Index item 102",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 102). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-103",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of HGVs & MGVs for 24 hours of the day from AIIMS to lado sarai light signal...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.4861-5050/TE(D-II),dt.7.6.2005",
+   "date": "2005-06-07",
+   "gazette": "Index item 103",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 103). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-104",
+   "kind": "advisory",
+   "title": "Prohibit the plying & idle parking of LGVs for 24 hours of the day on prithvi raj road aurbindo chowk to south end road delhi...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.2496-2676/TE(D-II),dt.24.3.2005",
+   "date": "2005-03-24",
+   "gazette": "Index item 104",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 104). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-105",
+   "kind": "advisory",
+   "title": "Prohibit the plying and idle parking of LGVs & HGVs from 7.00 AM to 11.00 PM on J.L.N marg...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.820-980/TE(D-II),dt.27.1.2005 No.2315-2495/TE(D-II),dt.24.3.2005",
+   "date": "2005-01-27",
+   "gazette": "Index item 105",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 105). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-107",
+   "kind": "advisory",
+   "title": "Ban on the plying and medium goods vehicles from 7 AM to 11 PM light goods vehicles from 8 AM to 11 AM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.17000-17160/TE(D-II),dt.3.12.2004",
+   "date": "2004-12-03",
+   "gazette": "Index item 107",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 107). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-108",
+   "kind": "advisory",
+   "title": "Ban on the plying and idle parking of Heavy/Medium and light goods vehicles from 7.30 AM to 11 AM and 5 PM to 9.30 PM on outer ring road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.16516-635/TE(D-II),dt.25.11.2004",
+   "date": "2004-11-25",
+   "gazette": "Index item 108",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 108). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-109",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs; LGVs carrying building material on the roads and entry point of jamia nagar for 24 hours.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.15600-15720/TE(D-II),dt.4.11.2004",
+   "date": "2004-11-04",
+   "gazette": "Index item 109",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 109). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-110",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs; LGVs from 7.30 AM to 11 AM and 5 PM to 11 PM on road No.13-A, from sarita vihar flyover...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.14090-14210/TE(D-II),dt.24.9.2004",
+   "date": "2004-09-24",
+   "gazette": "Index item 110",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 110). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-111",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs; LGVs carrying building material on the entry points in sainik farm, for 24 hours.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8650-8330/TE(D-II),dt.8.6.2004",
+   "date": "2004-06-08",
+   "gazette": "Index item 111",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 111). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-112",
+   "kind": "advisory",
+   "title": "Ban on plying of HGVs/MGVs from 7.30 AM to 11.00 PM and LGVs from 8.00 AM to 11 AM and from 5 PM to 9 PM on all roads of Shalimar Bagh area...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.8140-8330/TE(D-II),dt.8.6.2004",
+   "date": "2004-06-08",
+   "gazette": "Index item 112",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 112). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-113",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs LGVs on Maharaj Aggarsen Marg from Shakar Pur Chowk (Vikas Marg) towards Madhubad...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.7040-7130/TE(D-II),dt.21.5.2004",
+   "date": "2004-05-21",
+   "gazette": "Index item 113",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 113). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-114",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs and MGVs Suraj piracha Marg from Okhla Village and Village jogabai to Gali No.38 Zakir nagar...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.664-814/TE(D-II),dt.16.1.2003",
+   "date": "2003-01-16",
+   "gazette": "Index item 114",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 114). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-115",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs and MGVs on Road No.44 from 7.30 AM to 9.30 PM and on Kalidas Marg throughout 24 hrs.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.18620/TE(D-II),dt.2.12.2002",
+   "date": "2002-12-02",
+   "gazette": "Index item 115",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 115). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-116",
+   "kind": "advisory",
+   "title": "Prohibiting the plying of HGVs, MGVs & LGVs on mehrauli-gurgaon Road, Anuvrat Marg and Aurvindo Marg...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No12145-12295/TE(D-II),dt.19.7.2002",
+   "date": "2002-07-19",
+   "gazette": "Index item 116",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 116). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-123",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs & MGVs for 24 hrs. at gali Teli mill Ram Nagar, Paharganj, Qutab Road, Delhi.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.6280-6430/TE(D-II),dt.19.4.2002",
+   "date": "2002-04-19",
+   "gazette": "Index item 123",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 123). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-106",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs & LGVs on Mandi-jaunapur Road in the residential areas of Mandi and Jaunapur Villages for 24 hours.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No./TE(D-II),dt.13.3.2001",
+   "date": "2001-03-13",
+   "gazette": "Index item 106",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 106). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-118",
+   "kind": "advisory",
+   "title": "Ban on the plying HGVs & LGVs on Noida Toll Bridge Road (from outer Ring Road up to Noida Toll Bridge in Delhi State jurisdiction)...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No./TE(D-II),dt.13.2.2001",
+   "date": "2001-02-13",
+   "gazette": "Index item 118",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 118). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-119",
+   "kind": "advisory",
+   "title": "Ban on the plying and parking of HGVs & MGVs on mehrauli-mahipal pur Road from 6 AM to 9 PM.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.15862-16012/TE(D-II),dt.3.11.2000",
+   "date": "2000-11-03",
+   "gazette": "Index item 119",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 119). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-120",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs & LGVs on Road No.66, seelam pur, LGVs 8.00 AM to 11.00 AM & 5.00 PM to 9.00 PM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.10201-10350/TE(D-II),dt.1.8.2000",
+   "date": "2000-08-01",
+   "gazette": "Index item 120",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 120). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-121",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs & LGVs on Chota Bazar (shahdara) from 7.30 AM to 9.30 PM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.9460-9610/TE(D-II),dt.25.7.2000",
+   "date": "2000-07-25",
+   "gazette": "Index item 121",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 121). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-122",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs on hastsal Road from 7.30 AM to 9.30 PM (instead of 8.00 AM to 9.30 PM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No.9611-9760/TE(D-II),dt.25.7.2000",
+   "date": "2000-07-25",
+   "gazette": "Index item 122",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 122). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-124",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs & LGVs on Chota Bazar (shahdara) from 8.00AM to 8.00 PM.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 1425-1575/TE(D-II) dated 14.2.2000",
+   "date": "2000-02-14",
+   "gazette": "Index item 124",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 124). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-125",
+   "kind": "advisory",
+   "title": "U/s 115 M. V. Act by Transport Department, GNCT of Delhi on the plying & idle parking of heavy/medium/light goods vehicles...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. F No. Sece 10(164) Tpt/98/625 dated 11-02-2000",
+   "date": "2000-02-11",
+   "gazette": "Index item 125",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 125). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-126",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs on Lal Bahadur Shastri Marg from Chirag Delhi Flyover up to Khanpur-M. B. Road 'T' Point...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 12076-12226/TE(D-II) dated 08-12-1999",
+   "date": "1999-12-08",
+   "gazette": "Index item 126",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 126). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-127",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/LGVs and Commercial Vehicles on Kapashera Crossing to Rajokari crossing for 24 hours.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 11220-11369/TE(D-II) dated 22-11-1999",
+   "date": "1999-11-22",
+   "gazette": "Index item 127",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 127). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-128",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs and MGVs on road between Dilshad Colony and Dilshad Garden residential area...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 1581-1731/TE(D-II) dated 01-03-1999",
+   "date": "1999-03-01",
+   "gazette": "Index item 128",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 128). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-129",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs on Hastsal Road from 8.00 AM to 9.30 PM.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 363-513/TE(D-II) dated 03-02-1999",
+   "date": "1999-02-03",
+   "gazette": "Index item 129",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 129). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-130",
+   "kind": "advisory",
+   "title": "Ban on the plying and parking of HGVs and MGVs on Mori Gate Road, S.P. Mukherjee Marg between Pul Dufferin...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 11481-631/TE(D-II) dated 10-11-1998",
+   "date": "1998-11-10",
+   "gazette": "Index item 130",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 130). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-131",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs and LGVs on Road No. 66, Seelam Pur (HGVs/MGVs: from 7.30 AM to 11.00 AM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 9654-9800/TE(D-II) dated 02-09-1998",
+   "date": "1998-09-02",
+   "gazette": "Index item 131",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 131). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-132",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs and MGVs on Mathura Road (From Badarpur Border upto Ashram Chowk)...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 8191-8341/TE(D-II) dated 13-07-1998",
+   "date": "1998-07-13",
+   "gazette": "Index item 132",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 132). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-133",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs and LGVs on Lane No. S-14 to S-75, G.K. Part II for 24 hours.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 6937-7088/TE(D-II) dated 11-06-1998",
+   "date": "1998-06-11",
+   "gazette": "Index item 133",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 133). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-134",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs for 24 hrs. and LGVs on Pusta Road from Kajoori Chowk to Shastri Park from 8.30 AM to 11.00 AM.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 3755-3805/TE(D-II) dated 01-05-1998",
+   "date": "1998-05-01",
+   "gazette": "Index item 134",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 134). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-135",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs on the Benito Juarez Marg for 24 hours.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 2799-2949/TE(D-II) dated 15-04-1998",
+   "date": "1998-04-15",
+   "gazette": "Index item 135",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 135). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-136",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs & LGVs on the internal roads of residential colony of Sarita Vihar...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 2216-2336/TE(D-II) dated 24-03-1998",
+   "date": "1998-03-24",
+   "gazette": "Index item 136",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 136). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-137",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs & MGVs on the stretch of entire Narwana Road (East Delhi) for 24 hours.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 15360-459/TE(D-III) dated 17-10-1997",
+   "date": "1997-10-17",
+   "gazette": "Index item 137",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 137). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-138",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs & LGVs on the stretch of road between Pashimi Marg, Vasant Vihar and Link Road...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 10406-506/TE(D-II) dated 15-09-1997",
+   "date": "1997-09-15",
+   "gazette": "Index item 138",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 138). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-139",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs/MGVs & LGVs on Gali Sushila Mohan Marg, Tilak Bazar, Gali Pattewali and adjoining streets...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 5010-5110/TE(D-II) dated 30-05-1997",
+   "date": "1997-05-30",
+   "gazette": "Index item 139",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 139). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-68",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVS & LGVs on Ch. Jhandu Singh Marg between 7.30 AM to 9.30 PM. 30-04-1997",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "",
+   "date": "1997-04-30",
+   "gazette": "Index item 68",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 68). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-140",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs & LGVs on Ch. Jhandu Singh Marg between 7.30 AM to 9.30 PM.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 3700-3775/TE(D-II) dated 30-04-1997",
+   "date": "1997-04-30",
+   "gazette": "Index item 140",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 140). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-67",
+   "kind": "advisory",
+   "title": "Ban on the plying of motor vehicles (including trailers) carrying goods such as send, badarpur, stone, husk, fly-ash and other offensive matters...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "",
+   "date": "1997-04-17",
+   "gazette": "Index item 67",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 67). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-141",
+   "kind": "advisory",
+   "title": "Ban on the plying of motor vehicles (including trailers) carrying goods such as sand, badarpur, stone...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. SECE.10(164)/Tpt./97/1095 dated 17-04-1997",
+   "date": "1997-04-17",
+   "gazette": "Index item 141",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 141). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-66",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGV & MGVs on Ch. Harshukh Marg between 7.30 to 9.30 PM",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "",
+   "date": "1996-11-06",
+   "gazette": "Index item 66",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 66). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-142",
+   "kind": "advisory",
+   "title": "Ban on the plying of HGVs & MGVs on Ch. Harshukh Marg between 7.30 AM to 9.30 PM.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 16016-16266/TE(D-II) dated 06-11-1996",
+   "date": "1996-11-06",
+   "gazette": "Index item 142",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 142). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-62",
+   "kind": "advisory",
+   "title": "Ban on the plying and idle parking of HGV/MGVs for 24 hours on the specified roads/areas.02-07-1996",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "",
+   "date": "1996-07-02",
+   "gazette": "Index item 62",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 62). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-63",
+   "kind": "advisory",
+   "title": "Ban on the plying and idle parking of HGV/MGVs on the specified roads between timings specified .02-07-1996",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "",
+   "date": "1996-07-02",
+   "gazette": "Index item 63",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 63). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-64",
+   "kind": "advisory",
+   "title": "Ban on the plying and idle parking of HGV/& MGVs on the specified roads between peak hours from 07.30 AM to 11 AM & 5 PM to 9.30 PM.02-07-1996",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "",
+   "date": "1996-07-02",
+   "gazette": "Index item 64",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 64). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-65",
+   "kind": "advisory",
+   "title": "Banning on the plying and parking of LGV on the specified roads from 9AM to 11AM & 6 PM to 8 PM. Restriction timings revised as 9 AM to 10.30 AM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "",
+   "date": "1996-07-02",
+   "gazette": "Index item 65",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 65). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-143",
+   "kind": "advisory",
+   "title": "Banning on the plying and parking of Light Goods Vehicles on the specified roads from 9 AM to 11 AM & 6 PM to 8 PM.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 8360-8559/TE(D-III) dated 02-07-1996",
+   "date": "1996-07-02",
+   "gazette": "Index item 143",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 143). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-144",
+   "kind": "advisory",
+   "title": "Ban on the plying and idle parking of HGVs & MGVs on the specified roads between peak hours from 7.30 AM to 11 AM...",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 7760-7959/TE(D-II) dated 02-07-1996",
+   "date": "1996-07-02",
+   "gazette": "Index item 144",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 144). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-145",
+   "kind": "advisory",
+   "title": "Ban on the plying and idle parking of HGVs & MGVs on the specified roads between timings specified.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 7960-8159/TE(D-II) dated 02-07-1996",
+   "date": "1996-07-02",
+   "gazette": "Index item 145",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 145). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "DTP-L-146",
+   "kind": "advisory",
+   "title": "Ban on the plying and idle parking of HGVs/MGVs for 24 hours on the specified roads/areas.",
+   "authority": "Delhi Traffic Police / Transport Department, GNCT of Delhi",
+   "ref": "No. 8160-8359/TE(D-II) dated 02-07-1996",
+   "date": "1996-07-02",
+   "gazette": "Index item 146",
+   "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 146). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
+   "url": "https://traffic.delhipolice.gov.in/node/41"
+  }
+ ],
+ "rules": [
+  {
+   "id": "R01",
+   "notification": "TD-2022-74376",
+   "name": "Agra Canal Road (Kalindi Kunj to Faridabad border)",
+   "kind": "road",
+   "names": [
+    "Agra Canal"
+   ],
+   "bbox": [
+    77.28,
+    28.46,
+    77.36,
+    28.56
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R02",
+   "notification": "TD-2022-74376",
+   "name": "Pataudi House Road, Daryaganj",
+   "kind": "road",
+   "names": [
+    "Pataudi House"
+   ],
+   "bbox": [
+    77.232,
+    28.636,
+    77.248,
+    28.648
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "12:00",
+     "15:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R03",
+   "notification": "TD-2022-74376",
+   "name": "Phirni / Circular Road, Najafgarh (HGV and MGV)",
+   "kind": "road",
+   "names": [
+    "Phirni",
+    "Circular Road"
+   ],
+   "bbox": [
+    76.955,
+    28.59,
+    77.005,
+    28.628
+   ],
+   "vehicles": [
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R03L",
+   "notification": "TD-2022-74376",
+   "name": "Phirni / Circular Road, Najafgarh (LGV peak hours)",
+   "kind": "road",
+   "names": [
+    "Phirni",
+    "Circular Road"
+   ],
+   "bbox": [
+    76.955,
+    28.59,
+    77.005,
+    28.628
+   ],
+   "vehicles": [
+    "lcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R04",
+   "notification": "TD-2022-74376",
+   "name": "Dhansa Road",
+   "kind": "road",
+   "names": [
+    "Dhansa"
+   ],
+   "bbox": [
+    76.9,
+    28.565,
+    76.99,
+    28.62
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R05",
+   "notification": "TD-2022-74376",
+   "name": "Bahadurgarh Road",
+   "kind": "road",
+   "names": [
+    "Bahadurgarh"
+   ],
+   "bbox": [
+    76.9,
+    28.6,
+    77.0,
+    28.7
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R06",
+   "notification": "TD-2022-74376",
+   "name": "Nangloi Road",
+   "kind": "road",
+   "names": [
+    "Nangloi"
+   ],
+   "bbox": [
+    76.97,
+    28.59,
+    77.07,
+    28.69
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R07",
+   "notification": "TD-2022-74376",
+   "name": "Shivaji Marg / Najafgarh Road",
+   "kind": "road",
+   "names": [
+    "Shivaji Marg",
+    "Najafgarh Road"
+   ],
+   "bbox": [
+    76.975,
+    28.595,
+    77.088,
+    28.645
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R08",
+   "notification": "TD-2022-74376",
+   "name": "Najafgarh Road (Vikas Puri Outer Ring Road to Najafgarh drain)",
+   "kind": "road",
+   "names": [
+    "Najafgarh Road",
+    "Najafgarh Rd"
+   ],
+   "bbox": [
+    76.96,
+    28.6,
+    77.1,
+    28.65
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R09",
+   "notification": "TD-2022-74376",
+   "name": "Rohtak Road (Tikri border to Peeragarhi)",
+   "kind": "road",
+   "names": [
+    "Rohtak Road",
+    "Rohtak Rd"
+   ],
+   "bbox": [
+    76.93,
+    28.655,
+    77.1,
+    28.705
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R10",
+   "notification": "TD-2022-74376",
+   "name": "Main Nangloi-Najafgarh Road (Nangloi Chowk to Rishal Garden)",
+   "kind": "road",
+   "names": [
+    "Najafgarh Nangloi",
+    "Nangloi Najafgarh",
+    "Nangloi - Najafgarh"
+   ],
+   "bbox": [
+    76.97,
+    28.59,
+    77.07,
+    28.69
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "07:00",
+     "11:00"
+    ],
+    [
+     "17:00",
+     "23:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R11",
+   "notification": "TD-2022-74376",
+   "name": "Barapulla Road (Ring Road near INA to Sarai Kale Khan), 24 hours",
+   "kind": "road",
+   "names": [
+    "Barapullah",
+    "Barapulla",
+    "Bara Pulla"
+   ],
+   "bbox": [
+    77.2,
+    28.565,
+    77.27,
+    28.6
+   ],
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "00:00",
+     "24:00"
+    ]
+   ],
+   "effective": 20220812
+  },
+  {
+   "id": "R12",
+   "notification": "TD-2022-74376",
+   "name": "Notified market area",
+   "kind": "area",
+   "vehicles": [
+    "lcv",
+    "mcv",
+    "hcv"
+   ],
+   "windows": [
+    [
+     "12:30",
+     "20:00"
+    ]
+   ],
+   "effective": 20220812,
+   "areas": [
+    {
+     "name": "Karol Bagh market",
+     "bbox": [
+      77.178,
+      28.642,
+      77.195,
+      28.655
+     ]
+    },
+    {
+     "name": "Sadar Bazar market",
+     "bbox": [
+      77.205,
+      28.653,
+      77.22,
+      28.667
+     ]
+    },
+    {
+     "name": "Kamla Nagar market",
+     "bbox": [
+      77.2,
+      28.678,
+      77.212,
+      28.69
+     ]
+    },
+    {
+     "name": "Gandhi Nagar market",
+     "bbox": [
+      77.262,
+      28.654,
+      77.28,
+      28.67
+     ]
+    },
+    {
+     "name": "Vikas Marg market stretch",
+     "bbox": [
+      77.265,
+      28.625,
+      77.31,
+      28.64
+     ]
+    },
+    {
+     "name": "Sarojini Nagar market",
+     "bbox": [
+      77.19,
+      28.568,
+      77.205,
+      28.581
+     ]
+    },
+    {
+     "name": "Green Park market",
+     "bbox": [
+      77.196,
+      28.553,
+      77.212,
+      28.568
+     ]
+    },
+    {
+     "name": "Lajpat Nagar market",
+     "bbox": [
+      77.23,
+      28.562,
+      77.25,
+      28.58
+     ]
+    },
+    {
+     "name": "Yusuf Sarai market",
+     "bbox": [
+      77.2,
+      28.545,
+      77.216,
+      28.56
+     ]
+    },
+    {
+     "name": "Mahipalpur market",
+     "bbox": [
+      77.115,
+      28.535,
+      77.135,
+      28.555
+     ]
+    },
+    {
+     "name": "Rajouri Garden market",
+     "bbox": [
+      77.11,
+      28.64,
+      77.13,
+      28.655
+     ]
+    },
+    {
+     "name": "Tilak Nagar market",
+     "bbox": [
+      77.082,
+      28.633,
+      77.1,
+      28.648
+     ]
+    },
+    {
+     "name": "Dwarka Sector 10 market",
+     "bbox": [
+      77.04,
+      28.575,
+      77.055,
+      28.59
+     ]
+    }
+   ]
+  }
+ ]
 }
