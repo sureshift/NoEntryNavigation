@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -126,6 +127,14 @@ fun MainScreen(vm: NavViewModel) {
     BackHandler(enabled = s.screen == Screen.MAP && s.report != ReportStep.NONE) { vm.cancelReport() }
     var topPx by remember { mutableStateOf(0) }       // height taken by the search / turn banner at the top
     var bottomPx by remember { mutableStateOf(0) }    // height taken by the bottom sheet
+    SideEffect { vm.mapController.padTop = topPx; vm.mapController.padBottom = bottomPx }
+    // once the sheet has settled (it slides down after a route is found), fit the whole route into the free map area
+    LaunchedEffect(s.route, bottomPx / 40, topPx / 40, s.navigating, s.pin == null) {
+        if (s.route != null && !s.navigating && s.pin == null && s.screen == Screen.MAP) {
+            kotlinx.coroutines.delay(450)
+            vm.mapController.refit(s.route)
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         MapViewHost(s, vm.mapController, { vm.onMapLongPress(it) }, { vm.onMapTap(it) }, vm::onViewport)
@@ -421,13 +430,18 @@ private fun BoxScope.NavTop(s: UiState, vm: NavViewModel) {
 
 @Composable
 private fun PlanSheet(s: UiState, vm: NavViewModel) {
-    Surface(shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), color = Color.White, shadowElevation = 20.dp) {
-        Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 14.dp)) {
+    // after a route is found the vehicle selector slides away so the map and the whole route stay visible
+    var expanded by remember(s.route == null) { mutableStateOf(s.route == null) }
+    Surface(shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), color = Color.White, shadowElevation = 20.dp,
+        modifier = Modifier.animateContentSize()) {
+        Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 14.dp)) {
             Box(
-                Modifier.align(Alignment.CenterHorizontally).width(38.dp).height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)).background(C.Line)
-            )
-            Spacer(Modifier.height(14.dp))
+                Modifier.fillMaxWidth().height(26.dp).clickable(enabled = s.route != null) { expanded = !expanded },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(Modifier.width(38.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(C.Line))
+            }
+            Spacer(Modifier.height(6.dp))
             if (!s.ready || s.busy) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp)),
@@ -450,8 +464,20 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                 StatusChip("The app closed unexpectedly last time ($it). Tap to dismiss.", C.Chip, C.Muted) { vm.dismissCrash() }
                 Spacer(Modifier.height(12.dp))
             }
-            Segmented(s.vehicle) { vm.setVehicle(it) }
-            Spacer(Modifier.height(16.dp))
+            if (expanded || s.route == null) {
+                Segmented(s.vehicle) { vm.setVehicle(it) }
+                Spacer(Modifier.height(16.dp))
+            } else {
+                Row(
+                    Modifier.clip(RoundedCornerShape(12.dp)).clickable { expanded = true }.padding(vertical = 4.dp, horizontal = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TruckIcon(VEHICLES.indexOf(s.vehicle).coerceAtLeast(0), C.Primary, 20.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("${s.vehicle.label} · change vehicle", color = C.Primary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.height(10.dp))
+            }
 
             val route = s.route
             if (route != null) {

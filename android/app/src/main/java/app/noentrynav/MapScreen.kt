@@ -55,6 +55,17 @@ class MapController {
     private var shownCams: String? = null
     private var shownLines: String? = ""
     private var fitted: Route? = null
+    /** Space (px) covered by the search card and the bottom sheet; the route is fitted into what is left. */
+    @Volatile var padTop = 220
+    @Volatile var padBottom = 600
+
+    fun refit(route: Route?) {
+        val m = map ?: return
+        if (route == null || route.points.size < 2) return
+        val b = LatLngBounds.Builder()
+        route.points.forEach { b.include(LatLng(it.lat, it.lon)) }
+        m.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 70, padTop + 40, 70, padBottom + 40), 700)
+    }
     private var centered = false
     private var lastRecenter = 0
     private var navZoom = 17.0
@@ -251,7 +262,7 @@ class MapController {
             fitted = route
             val b = LatLngBounds.Builder()
             route.points.forEach { b.include(LatLng(it.lat, it.lon)) }
-            m.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 90, 220, 90, 600), 800)
+            m.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 70, padTop + 40, 70, padBottom + 40), 800)
         } else if (route == null) {
             fitted = null
             if (!centered && me != null) {
