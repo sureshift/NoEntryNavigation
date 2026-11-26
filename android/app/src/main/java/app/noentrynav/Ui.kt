@@ -117,13 +117,19 @@ fun MainScreen(vm: NavViewModel) {
     BackHandler(enabled = s.screen == Screen.MAP && s.report != ReportStep.NONE) { vm.cancelReport() }
 
     Box(Modifier.fillMaxSize()) {
-        MapViewHost(s, vm.mapController, { vm.onMapLongPress(it) }, vm::onViewport)
+        MapViewHost(s, vm.mapController, { vm.onMapLongPress(it) }, { vm.onMapTap(it) }, vm::onViewport)
 
         if (s.navigating) NavTop(s, vm) else SearchTop(s, vm)
 
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
             if (s.pin == null && s.report != ReportStep.DETAILS) {
-                Row(Modifier.fillMaxWidth().padding(end = 14.dp, bottom = 12.dp), horizontalArrangement = Arrangement.End) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom
+                ) {
+                    if (s.report == ReportStep.NONE) {
+                        ReportPill { if (s.navigating) vm.quickReport() else vm.beginReport() }
+                    } else Spacer(Modifier.width(1.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.End) {
                         Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 10.dp) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -151,7 +157,11 @@ fun MainScreen(vm: NavViewModel) {
             when {
                 s.report == ReportStep.DETAILS -> ReportSheet(s, vm)
                 s.pin != null -> PinSheet(s.pin!!, s.report, vm)
-                s.navigating -> NavBottom(s, vm)
+                s.navigating -> {
+                    if (s.report == ReportStep.END) ReportNavBar(vm)
+                    NavBottom(s, vm)
+                }
+                s.report == ReportStep.START || s.report == ReportStep.END -> ReportGuide(s, vm)
                 else -> PlanSheet(s, vm)
             }
         }
@@ -475,7 +485,7 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                     }
                     Spacer(Modifier.height(10.dp))
                 }
-                Text("Search above, or long-press the map to set a start or destination.", color = C.Muted, fontSize = 15.sp)
+                Text("Search above, or long-press the map to set a start or destination. Tap Report no-entry to mark a no-entry road.", color = C.Muted, fontSize = 15.sp)
             }
 
             s.message?.let { msg ->
@@ -497,6 +507,105 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
             }
             Spacer(Modifier.height(10.dp))
             Text("Offline · Map data © OpenStreetMap contributors · Rules as of 26 Nov 2026", color = C.Muted, fontSize = 12.sp)
+        }
+    }
+}
+
+/** Always-visible shortcut so anyone can report a no-entry road. */
+@Composable
+private fun ReportPill(onClick: () -> Unit) {
+    Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 10.dp) {
+        Row(
+            Modifier.clip(RoundedCornerShape(26.dp)).clickable(onClick = onClick).padding(start = 14.dp, end = 18.dp, top = 13.dp, bottom = 13.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FlagIcon(C.Danger, 22.dp)
+            Spacer(Modifier.width(8.dp))
+            Text("Report no-entry", color = C.Danger, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun StepDot(n: Int, label: String, active: Boolean, done: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(24.dp).clip(CircleShape).background(if (active || done) C.Danger else C.Chip),
+            contentAlignment = Alignment.Center
+        ) { Text("$n", color = if (active || done) Color.White else C.Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+        Spacer(Modifier.width(8.dp))
+        Text(label, color = if (active) C.Ink else C.Muted, fontSize = 15.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium)
+    }
+}
+
+/** Step 1 / step 2 helper while placing the start and end of a reported no-entry road. */
+@Composable
+private fun ReportGuide(s: UiState, vm: NavViewModel) {
+    val start = s.report == ReportStep.START
+    Surface(shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), color = Color.White, shadowElevation = 20.dp) {
+        Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 18.dp)) {
+            Box(
+                Modifier.align(Alignment.CenterHorizontally).width(38.dp).height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)).background(C.Line)
+            )
+            Spacer(Modifier.height(14.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FlagIcon(C.Danger, 24.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("Report a no-entry road", color = C.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                StepDot(1, "Start", active = start, done = !start)
+                StepDot(2, "End", active = !start, done = false)
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                if (start) "Tap the map where the no-entry road begins, or use your location if you are standing there."
+                else "Now tap where it ends. Both points must be on the same road.",
+                color = C.Muted, fontSize = 14.sp
+            )
+            s.message?.takeIf { it.contains("GPS") }?.let { Spacer(Modifier.height(8.dp)); StatusChip(it, C.Chip, C.Muted) }
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(16.dp)).background(C.DangerBg)
+                        .clickable { vm.useGpsForReport() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TargetIcon(C.Danger, 20.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (start) "Start at my location" else "End at my location", color = C.Danger, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Box(
+                    Modifier.height(52.dp).clip(RoundedCornerShape(16.dp)).background(C.Chip).clickable { vm.cancelReport() }.padding(horizontal = 22.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("Cancel", color = C.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
+            }
+        }
+    }
+}
+
+/** While driving: start was marked, one tap marks the end. */
+@Composable
+private fun ReportNavBar(vm: NavViewModel) {
+    Surface(
+        shape = RoundedCornerShape(20.dp), color = C.Danger, shadowElevation = 12.dp,
+        modifier = Modifier.padding(horizontal = 14.dp).padding(bottom = 10.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            FlagIcon(Color.White, 22.dp)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text("No-entry start marked", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text("Tap when the no-entry road ends", color = Color(0xFFFECACA), fontSize = 12.sp)
+            }
+            Box(
+                Modifier.clip(RoundedCornerShape(14.dp)).background(Color.White).clickable { vm.quickReport() }.padding(horizontal = 16.dp, vertical = 11.dp)
+            ) { Text("End here", color = C.Danger, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+            Box(Modifier.size(40.dp).clip(CircleShape).clickable { vm.cancelReport() }, contentAlignment = Alignment.Center) { CloseIcon(Color.White, 14.dp) }
         }
     }
 }

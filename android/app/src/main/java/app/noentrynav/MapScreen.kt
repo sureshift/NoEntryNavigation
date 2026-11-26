@@ -71,7 +71,7 @@ class MapController {
         }
     }
 
-    fun attach(map: MapLibreMap, onLongPress: (LatLon) -> Unit, onViewport: (Double, Double, Double, Double, Double) -> Unit) {
+    fun attach(map: MapLibreMap, onLongPress: (LatLon) -> Unit, onTap: (LatLon) -> Unit, onViewport: (Double, Double, Double, Double, Double) -> Unit) {
         this.map = map
         map.cameraPosition = CameraPosition.Builder().target(LatLng(28.6139, 77.2090)).zoom(10.5).build()
         map.setStyle(Style.Builder().fromJson(STYLE_JSON)) { st ->
@@ -158,6 +158,10 @@ class MapController {
             reportViewport(map, onViewport)
         }
         map.addOnCameraIdleListener { reportViewport(map, onViewport) }
+        map.addOnMapClickListener { ll ->
+            onTap(LatLon(ll.latitude, ll.longitude))
+            false
+        }
         map.addOnMapLongClickListener { ll ->
             onLongPress(LatLon(ll.latitude, ll.longitude))
             true
@@ -296,6 +300,7 @@ fun MapViewHost(
     state: UiState,
     controller: MapController,
     onLongPress: (LatLon) -> Unit,
+    onTap: (LatLon) -> Unit,
     onViewport: (Double, Double, Double, Double, Double) -> Unit
 ) {
     val context = LocalContext.current
@@ -320,7 +325,7 @@ fun MapViewHost(
 
     AndroidView(
         factory = {
-            mapView.also { mv -> mv.getMapAsync { map -> controller.attach(map, onLongPress, onViewport) } }
+            mapView.also { mv -> mv.getMapAsync { map -> controller.attach(map, onLongPress, onTap, onViewport) } }
         },
         modifier = Modifier.fillMaxSize(),
         update = { controller.render(state) }

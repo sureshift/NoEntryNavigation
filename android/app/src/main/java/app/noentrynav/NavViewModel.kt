@@ -266,6 +266,32 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         _s.update { it.copy(pin = p) }
     }
 
+    /** A plain tap: only used while placing the start / end of a reported no-entry road. */
+    fun onMapTap(p: LatLon) {
+        val st = _s.value
+        if (st.navigating) return
+        if (st.report == ReportStep.START || st.report == ReportStep.END) _s.update { it.copy(pin = p) }
+    }
+
+    /** "Use my current location" while placing a point of a report. */
+    fun useGpsForReport() {
+        val me = _s.value.me
+        if (me == null) { _s.update { it.copy(message = "Waiting for GPS fix… or tap the map instead.") }; return }
+        markReportPoint(me)
+    }
+
+    /** One-tap reporting while driving: first tap marks where the no-entry starts, second tap where it ends. */
+    fun quickReport() {
+        val st = _s.value
+        val me = st.me
+        if (me == null) { _s.update { it.copy(message = "Waiting for GPS fix…") }; return }
+        when (st.report) {
+            ReportStep.NONE -> _s.update { it.copy(report = ReportStep.END, reportA = me, reportB = null, message = null) }
+            ReportStep.END -> _s.update { it.copy(reportB = me, report = ReportStep.DETAILS, message = null) }
+            else -> {}
+        }
+    }
+
     fun dismissPin() { _s.update { it.copy(pin = null) } }
 
     fun showRules(show: Boolean) { _s.update { it.copy(screen = if (show) Screen.RULES else Screen.MAP) } }
@@ -283,7 +309,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         _s.update {
             it.copy(
                 screen = Screen.MAP, report = ReportStep.START, reportA = null, reportB = null, pin = null, editing = null,
-                message = "Long-press the map where the no-entry road STARTS."
+                message = "Tap the map where the no-entry road STARTS."
             )
         }
     }
@@ -295,7 +321,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     fun markReportPoint(p: LatLon) {
         when (_s.value.report) {
             ReportStep.START -> _s.update {
-                it.copy(reportA = p, report = ReportStep.END, pin = null, message = "Now long-press where the no-entry road ENDS (same road).")
+                it.copy(reportA = p, report = ReportStep.END, pin = null, message = "Now tap where the no-entry road ENDS (same road).")
             }
             ReportStep.END -> _s.update { it.copy(reportB = p, report = ReportStep.DETAILS, pin = null, message = null) }
             else -> {}
@@ -324,7 +350,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                         message = "Thanks. Your no-entry report is saved on this phone and used for routing.")
                 }
                 refreshZones()
-                if (_s.value.dest != null) requestRoute()
+                if (_s.value.dest != null) requestRoute(auto = _s.value.navigating)
             }
         }
     }

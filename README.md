@@ -23,7 +23,8 @@ CI runs `tools/check_rules.py` and prints how many map segments each road rule m
 Road extents and area boxes are approximate. Older 1996-2017 road notifications are not encoded yet.
 
 ## Driver reports (crowd-sourced no-entry)
-Long-press the map > "Report no-entry road from here", then long-press the end point, pick vehicles and hours.
+Tap the red **Report no-entry** button on the map (always visible). Tap where the road starts (or use your location), then where it ends, pick vehicles and hours.
+While driving the same button marks the start at your position and **End here** marks the end.
 The app finds the road between the two points and avoids it in routing. Reports stay on the phone (no server);
 use Rules > Share to send them (WhatsApp etc.) and Rules > Import to add reports a colleague sent.
 To ship reports to everyone, add them to `android/app/src/main/assets/community.json` (ids must start with `C-`) and push.
