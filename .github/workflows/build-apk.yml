@@ -25,7 +25,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: data/delhi.osm.pbf
-          key: delhi-extract-v1
+          key: ncr-extract-v2
       - name: Fetch Delhi OSM extract (tries several mirrors)
         run: bash tools/fetch_osm.sh
       - name: Fetch Overture Maps places (extra businesses; optional)

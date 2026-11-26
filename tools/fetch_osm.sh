@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Gets an OpenStreetMap extract clipped to Delhi, trying several mirrors until one works.
+# Gets an OpenStreetMap extract clipped to Delhi NCR (Delhi, Gurugram, Noida, Greater Noida, Ghaziabad), trying several mirrors until one works.
 # Output: data/delhi.osm.pbf     Needs: curl, osmium-tool
 set -u
-BBOX="${BBOX:-76.83,28.40,77.35,28.89}"   # min_lon,min_lat,max_lon,max_lat
+BBOX="${BBOX:-76.80,28.30,77.62,28.90}"   # Delhi + Gurugram, Noida, Greater Noida, Ghaziabad (min_lon,min_lat,max_lon,max_lat)
 OUT=data/delhi.osm.pbf
 mkdir -p data
 if [ -s "$OUT" ]; then echo "::notice::using cached $OUT"; exit 0; fi

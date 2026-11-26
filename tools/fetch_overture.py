@@ -3,7 +3,7 @@
 Usage: fetch_overture.py out.csv    (needs: pip install duckdb). Failure is non-fatal for the build."""
 import csv, json, sys, urllib.request
 
-BBOX = (76.80, 28.35, 77.60, 28.95)   # minlon, minlat, maxlon, maxlat
+BBOX = (76.80, 28.30, 77.62, 28.90)   # minlon, minlat, maxlon, maxlat
 
 def latest():
     with urllib.request.urlopen("https://stac.overturemaps.org/catalog.json", timeout=30) as r:
@@ -29,7 +29,7 @@ def main(out):
                {ph} AS phone, p.confidence
         FROM {src} AS p
         WHERE p.bbox.xmin BETWEEN {x0} AND {x1} AND p.bbox.ymin BETWEEN {y0} AND {y1}
-          AND p.names.primary IS NOT NULL AND p.confidence >= 0.6
+          AND p.names.primary IS NOT NULL AND p.confidence >= 0.65
     """).fetchall()
     with open(out, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)

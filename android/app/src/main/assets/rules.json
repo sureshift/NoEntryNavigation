@@ -1123,6 +1123,39 @@
    "gazette": "Index item 146",
    "summary": "Earlier no-entry order listed in the official Delhi Traffic Police index of notifications (item 146). The road stretches and exact timings are in the original order. Information only: NOT applied to routing, and it may have been replaced by the August 2021 / August 2022 goods-vehicle notification.",
    "url": "https://traffic.delhipolice.gov.in/node/41"
+  },
+  {
+   "id": "INFO-GGN",
+   "kind": "advisory",
+   "title": "Gurugram: no standing city-wide no-entry timetable found",
+   "authority": "Gurugram Traffic Police (Haryana)",
+   "ref": "",
+   "date": "2026-11-26",
+   "gazette": "",
+   "summary": "The map and place search now cover Gurugram. I could not find a published, standing no-entry gazette for Gurugram that lists roads and hours. Restrictions there are issued as road-specific or event orders (for example heavy vehicles between Pachgaon Chowk and IMT Manesar, 9 AM to 9 PM, during flyover work). None are applied to routing. Delhi rules still apply on Delhi roads. If you have a Gurugram notification, send it and it will be added. You can also report a no-entry road yourself.",
+   "url": ""
+  },
+  {
+   "id": "INFO-NOIDA",
+   "kind": "advisory",
+   "title": "Noida and Greater Noida: no standing city-wide no-entry timetable found",
+   "authority": "Gautam Buddh Nagar Police Commissionerate (Uttar Pradesh)",
+   "ref": "",
+   "date": "2026-11-26",
+   "gazette": "",
+   "summary": "The map and place search now cover Noida and Greater Noida. I could not find a published, standing no-entry gazette that lists roads and hours. Heavy-vehicle bans there are issued as temporary event or festival orders (for example around trade fairs and Republic Day), typically 7 AM to 10 or 11 PM on affected routes. None are applied to routing. If you have a notification, send it and it will be added. You can also report a no-entry road yourself.",
+   "url": ""
+  },
+  {
+   "id": "INFO-GZB",
+   "kind": "advisory",
+   "title": "Ghaziabad: no standing city-wide no-entry timetable found",
+   "authority": "Ghaziabad Traffic Police (Uttar Pradesh)",
+   "ref": "",
+   "date": "2026-11-26",
+   "gazette": "",
+   "summary": "The map and place search now cover Ghaziabad. I could not find a published, standing no-entry gazette that lists roads and hours. Ghaziabad restrictions are usually temporary orders, such as heavy commercial vehicles barred from NH-9 around festival rush, with traffic sent to the Delhi-Meerut Expressway and Eastern Peripheral Expressway. None are applied to routing. If you have a notification, send it and it will be added. You can also report a no-entry road yourself.",
+   "url": ""
   }
  ],
  "rules": [
