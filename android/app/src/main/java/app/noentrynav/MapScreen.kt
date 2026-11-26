@@ -48,7 +48,7 @@ class MapController {
     private var map: MapLibreMap? = null
     private var style: Style? = null
     private var last: UiState? = null
-    private var shownZones: List<Zone>? = null
+    private var shownZones: List<Pair<Zone, Int>>? = null
     private var shownRoute: Route? = null
     private var shownRoutes: List<Route>? = null
     private var shownRoads: Roads? = null
@@ -92,12 +92,13 @@ class MapController {
             st.addLayer(LineLayer("rf-main", "roads-main").withProperties(lineColor("#FFFFFF"), lineWidth(4.5f), *round))
             st.addLayer(LineLayer("rf-major", "roads-major").withProperties(lineColor("#FFD66B"), lineWidth(6f), *round))
             st.addSource(GeoJsonSource("zones", EMPTY_FC))
-            st.addLayer(FillLayer("zones-fill", "zones").withProperties(fillColor("#EF4444"), fillOpacity(0.18f)))
-            st.addLayer(LineLayer("zones-line", "zones").withProperties(lineColor("#DC2626"), lineWidth(2f)))
+            st.addLayer(FillLayer("zones-fill", "zones").withProperties(fillColor(org.maplibre.android.style.expressions.Expression.toColor(org.maplibre.android.style.expressions.Expression.get("c"))), fillOpacity(0.2f)))
+            st.addLayer(LineLayer("zones-line", "zones").withProperties(lineColor(org.maplibre.android.style.expressions.Expression.toColor(org.maplibre.android.style.expressions.Expression.get("c"))), lineWidth(2f)))
             st.addSource(GeoJsonSource("zone-roads", EMPTY_FC))
             st.addLayer(
                 LineLayer("zone-roads-line", "zone-roads").withProperties(
-                    lineColor("#DC2626"), lineWidth(5f), lineOpacity(0.85f), *round
+                    lineColor(org.maplibre.android.style.expressions.Expression.toColor(org.maplibre.android.style.expressions.Expression.get("c"))),
+                    lineWidth(5f), lineOpacity(0.85f), *round
                 )
             )
             st.addSource(GeoJsonSource("alts", EMPTY_FC))
@@ -195,9 +196,9 @@ class MapController {
         val st = style ?: return
         val m = map ?: return
 
-        if (s.zones !== shownZones) {
-            st.getSourceAs<GeoJsonSource>("zones")?.setGeoJson(zonesJson(s.zones))
-            shownZones = s.zones
+        if (s.zoneSt !== shownZones) {
+            st.getSourceAs<GeoJsonSource>("zones")?.setGeoJson(zonesJson(s.zoneSt))
+            shownZones = s.zoneSt
         }
         if (s.roads !== shownRoads && s.roads != null) {
             st.getSourceAs<GeoJsonSource>("roads-major")?.setGeoJson(s.roads.major)
@@ -264,15 +265,15 @@ class MapController {
         }
     }
 
-    private fun zonesJson(z: List<Zone>): String {
+    private fun zonesJson(z: List<Pair<Zone, Int>>): String {
         val feats = JSONArray()
-        z.filter { it.ring.size >= 3 }.forEach { zone ->
+        z.filter { it.first.ring.size >= 3 }.forEach { (zone, cat) ->
             val ring = JSONArray()
             zone.ring.forEach { ring.put(JSONArray().put(it.lon).put(it.lat)) }
             zone.ring.first().let { ring.put(JSONArray().put(it.lon).put(it.lat)) }
             feats.put(
                 JSONObject().put("type", "Feature")
-                    .put("properties", JSONObject().put("name", zone.name))
+                    .put("properties", JSONObject().put("name", zone.name).put("c", Zone.statusColor(cat)))
                     .put("geometry", JSONObject().put("type", "Polygon").put("coordinates", JSONArray().put(ring)))
             )
         }

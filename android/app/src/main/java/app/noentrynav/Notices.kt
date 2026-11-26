@@ -146,6 +146,20 @@ private fun RuleList(s: UiState, vm: NavViewModel) {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
+            Column(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Map colours", color = C.Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                for (rowCats in listOf(listOf(1, 0, 2), listOf(3, 4))) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        for (c in rowCats) Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(11.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(Zone.statusColor(c)))))
+                            Spacer(Modifier.width(6.dp))
+                            Text(Zone.statusLabel(c), color = C.Ink, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+        item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ActionChip("Report road", C.Danger, C.DangerBg, Modifier.weight(1.2f), { FlagIcon(C.Danger, 18.dp) }) { vm.beginReport() }
                 ActionChip("Share", C.Primary, Color(0xFFEFF6FF), Modifier.weight(0.9f), { ShareIcon(C.Primary, 17.dp) }) {

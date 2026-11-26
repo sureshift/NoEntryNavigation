@@ -331,10 +331,16 @@ class Engine(private val ctx: Context) : SegStore {
         return zones.filter { it.isActive(vclass, c.dayIso, c.minute, c.date) }
     }
 
-    /** GeoJSON of the map segments covered by the active road rules (drawn in red). */
-    suspend fun zoneLines(active: List<Zone>): String? = withContext(Dispatchers.IO) {
-        val parts = ArrayList<String>()
-        for (z in active) {
+    /** Every rule that matters for this vehicle today, with its timing category (see Zone.status). */
+    fun zoneStatuses(vclass: String): List<Pair<Zone, Int>> {
+        val c = now()
+        return zones.mapNotNull { z -> val st = z.status(vclass, c.dayIso, c.minute, c.date); if (st >= 0) Pair(z, st) else null }
+    }
+
+    /** GeoJSON of the map segments covered by road rules, each feature coloured by its timing category. */
+    suspend fun zoneLines(st: List<Pair<Zone, Int>>): String? = withContext(Dispatchers.IO) {
+        val feats = ArrayList<String>()
+        for ((z, cat) in st) {
             val segs = z.segs ?: continue
             val cached = lineCache.getOrPut(z.id) {
                 val sb = StringBuilder()
@@ -351,10 +357,10 @@ class Engine(private val ctx: Context) : SegStore {
                 }
                 sb.toString()
             }
-            if (cached.isNotEmpty()) parts.add(cached)
+            if (cached.isNotEmpty())
+                feats.add("""{"type":"Feature","properties":{"c":"${Zone.statusColor(cat)}"},"geometry":{"type":"MultiLineString","coordinates":[$cached]}}""")
         }
-        if (parts.isEmpty()) null
-        else """{"type":"Feature","properties":{},"geometry":{"type":"MultiLineString","coordinates":[${parts.joinToString(",")}]}}"""
+        if (feats.isEmpty()) null else """{"type":"FeatureCollection","features":[${feats.joinToString(",")}]}"""
     }
 
     // ---- SegStore ----

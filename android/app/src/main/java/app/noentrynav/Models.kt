@@ -49,7 +49,30 @@ class Zone(
         return false
     }
 
+    /** Timing category for map colours: 0 = banned all day and now, 1 = banned now (timed), 2 = starts within the hour,
+     *  3 = banned later today, 4 = driver-reported and banned now, -1 = not relevant right now. */
+    fun status(vclass: String, dayIso: Int, minute: Int, date: Int): Int {
+        if (!enforceable || vclass !in vehicles || date < validFrom || date > validTo) return -1
+        if (isActive(vclass, dayIso, minute, date)) {
+            if (community) return 4
+            return if (windows.any { it[0] == 0 && it[1] >= 1440 }) 0 else 1
+        }
+        for (m in 1..60) {
+            val t = minute + m
+            val d = if (t >= 1440) (if (dayIso == 7) 1 else dayIso + 1) else dayIso
+            if (isActive(vclass, d, t % 1440, date)) return 2
+        }
+        if (dayIso in days && windows.any { it[0] > minute && it[0] < 1440 }) return 3
+        return -1
+    }
+
     companion object {
+        fun statusColor(c: Int): String = when (c) {
+            0 -> "#7F1D1D"; 1 -> "#DC2626"; 2 -> "#F59E0B"; 3 -> "#3B82F6"; else -> "#DB2777"
+        }
+        fun statusLabel(c: Int): String = when (c) {
+            0 -> "Banned all day"; 1 -> "Banned now"; 2 -> "Starts within 1 hour"; 3 -> "Later today"; else -> "Driver-reported, now"
+        }
         fun hm(m: Int): String = if (m >= 1440) "24:00" else "%02d:%02d".format(m / 60, m % 60)
     }
 }
@@ -150,6 +173,7 @@ data class UiState(
     val results: List<Place> = emptyList(),
     val ready: Boolean = false,
     val roads: Roads? = null,
+    val zoneSt: List<Pair<Zone, Int>> = emptyList(),   // every relevant rule with its timing category
     val cams: String? = null,        // GeoJSON of speed / red-light cameras
     val limit: Int = 0,              // speed limit on the current road, km/h (0 = unknown)
     val limitPosted: Boolean = false,// true when taken from a posted maxspeed, false when estimated from road class

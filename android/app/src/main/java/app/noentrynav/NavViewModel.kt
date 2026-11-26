@@ -100,7 +100,8 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                     if (_s.value.ready) {
                         val st = _s.value
                         val zs = engine.zonesFor(st.vehicle.key)
-                        if (zs.map { it.id } != st.zones.map { it.id }) {
+                        val sig = engine.zoneStatuses(st.vehicle.key).map { it.first.id to it.second }
+                        if (sig != st.zoneSt.map { it.first.id to it.second } || zs.map { it.id } != st.zones.map { it.id }) {
                             _s.update { it.copy(zones = zs) }
                             updateZoneLines(zs)
                             if (!st.navigating && st.route != null) requestRoute()
@@ -112,8 +113,9 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     }
 
     private suspend fun updateZoneLinesNow(zs: List<Zone>) {
-        val g = try { engine.zoneLines(zs) } catch (e: Exception) { null }
-        _s.update { it.copy(zoneLines = g) }
+        val st = engine.zoneStatuses(_s.value.vehicle.key)
+        val g = try { engine.zoneLines(st) } catch (e: Exception) { null }
+        _s.update { it.copy(zoneLines = g, zoneSt = st) }
     }
 
     private fun updateZoneLines(zs: List<Zone>) {
@@ -515,7 +517,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
             limitBusy = true; lastLimitAt = now
             viewModelScope.launch {
                 try {
-                    val res = engine.limitAt(p, app.noentrynav.Profile(false, 0.0, 0.0, 1.0))
+                    val res = engine.limitAt(p, Profile(false, 0.0, 0.0, 1.0))
                     _s.update { it.copy(limit = res?.first ?: 0, limitPosted = res?.second ?: false) }
                 } catch (_: Exception) {
                 } finally { limitBusy = false }
