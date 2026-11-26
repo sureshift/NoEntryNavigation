@@ -402,7 +402,42 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
     fun exportReports(): String = engine.exportReports()
 
+    /** Message for sharing the current route (with the driver-reported no-entry roads) through any app. */
+    fun routeShareText(): String? {
+        val st = _s.value
+        val r = st.route ?: return null
+        val from = st.origin ?: st.me ?: return null
+        val to = st.dest ?: return null
+        val summary = "%.1f km, %s".format(r.distKm, fmtTime(r.timeSec))
+        return engine.exportRoute(from, if (st.origin == null) "Start" else st.originName.ifBlank { "Start" }, to, st.destName.ifBlank { "Destination" }, st.vehicle, summary)
+    }
+
+    /** A message received from another driver: loads the route (if any) and imports the no-entry reports in it. */
+    fun handleShared(text: String) {
+        viewModelScope.launch {
+            var waited = 0
+            while (!_s.value.ready && waited < 120_000) { kotlinx.coroutines.delay(300); waited += 300 }
+            if (!_s.value.ready) return@launch
+            val sr = engine.parseSharedRoute(text)
+            val n = try { engine.importReports(text) } catch (_: Exception) { -1 }
+            if (sr == null && n < 0) { _s.update { it.copy(message = "That message has no NoEntry Nav route or reports.") }; return@launch }
+            val veh = VEHICLES.firstOrNull { it.key == sr?.veh } ?: _s.value.vehicle
+            _s.update {
+                it.copy(
+                    allZones = engine.allZones, screen = Screen.MAP, navigating = false,
+                    vehicle = veh, origin = sr?.from ?: it.origin, originName = sr?.fromName ?: it.originName,
+                    dest = sr?.to ?: it.dest, destName = sr?.toName ?: it.destName, route = null, routes = emptyList(), editing = null, pin = null,
+                    message = (if (sr != null) "Shared route loaded. " else "") + (if (n > 0) "Added $n no-entry report${if (n > 1) "s" else ""}. " else "") +
+                        (if (sr != null) "Tap \"Add no-entry\" to mark roads on this route." else "")
+                )
+            }
+            refreshZones()
+            if (sr != null) requestRoute()
+        }
+    }
+
     fun importReports(text: String) {
+        if (text.contains("noentry_route")) { handleShared(text); return }
         viewModelScope.launch {
             val n = try { engine.importReports(text) } catch (_: Exception) { -1 }
             _s.update {

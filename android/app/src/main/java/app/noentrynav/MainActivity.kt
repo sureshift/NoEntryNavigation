@@ -19,10 +19,24 @@ class MainActivity : ComponentActivity() {
         ) vm.startLocation()
     }
 
+    private fun handleIntent(i: android.content.Intent?) {
+        if (i?.action == android.content.Intent.ACTION_SEND) {
+            i.getStringExtra(android.content.Intent.EXTRA_TEXT)?.let { vm.handleShared(it) }
+            i.action = null
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MapLibre.getInstance(this)
         setContent { AppTheme { MainScreen(vm) } }
+        handleIntent(intent)
         permLauncher.launch(
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         )

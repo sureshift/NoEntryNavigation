@@ -565,6 +565,32 @@ class Engine(private val ctx: Context) : SegStore {
             JSONObject().put("noentry_reports", arr).toString()
     }
 
+    class SharedRoute(val from: LatLon, val fromName: String, val to: LatLon, val toName: String, val veh: String)
+
+    /** Text a driver can send on WhatsApp etc.: the route, plus every driver-reported no-entry road he knows of. */
+    fun exportRoute(from: LatLon, fromName: String, to: LatLon, toName: String, veh: Vehicle, summary: String): String {
+        val arr = JSONArray()
+        reports.filter { !it.id.startsWith("C-") }.forEach { arr.put(reportToJson(it)) }
+        val rt = JSONObject().put("from", JSONArray().put(from.lat).put(from.lon)).put("fn", fromName)
+            .put("to", JSONArray().put(to.lat).put(to.lon)).put("tn", toName).put("veh", veh.key)
+        return "NoEntry Nav route: $fromName to $toName ($summary, ${veh.label}).\n" +
+            "Open this message in NoEntry Nav (Share > NoEntry Nav, or copy it and use Rules > Import). " +
+            "Then add any no-entry roads you know on this route and share it back.\n" +
+            JSONObject().put("noentry_route", rt).put("noentry_reports", arr).toString()
+    }
+
+    fun parseSharedRoute(text: String): SharedRoute? {
+        val i = text.indexOf('{'); val j = text.lastIndexOf('}')
+        if (i < 0 || j <= i) return null
+        return try {
+            val rt = JSONObject(text.substring(i, j + 1)).optJSONObject("noentry_route") ?: return null
+            val f = rt.getJSONArray("from"); val t = rt.getJSONArray("to")
+            val a = LatLon(f.getDouble(0), f.getDouble(1)); val b = LatLon(t.getDouble(0), t.getDouble(1))
+            if (!CoordParse.inNcr(a) || !CoordParse.inNcr(b)) return null
+            SharedRoute(a, rt.optString("fn", "Start"), b, rt.optString("tn", "Destination"), rt.optString("veh", "lcv"))
+        } catch (_: Exception) { null }
+    }
+
     /** Returns how many new reports were added, or -1 if the text holds no reports. */
     suspend fun importReports(text: String): Int = withContext(Dispatchers.IO) {
         val i = text.indexOf('{')

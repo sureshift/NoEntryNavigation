@@ -533,6 +533,8 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                         Text("Start", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+                Spacer(Modifier.height(10.dp))
+                RouteActions(vm)
                 route.warning?.let {
                     Spacer(Modifier.height(8.dp))
                     StatusChip(it, C.DangerBg, C.Danger) { vm.showRules(true) }
@@ -572,7 +574,9 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                         C.OkBg, C.Ok
                     ) { vm.showRules(true) }
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
+                RouteActions(vm)
+                Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = { vm.startNav() },
@@ -958,6 +962,37 @@ private fun RouteChips(s: UiState, vm: NavViewModel) {
 }
 
 /** Speed-limit sign, your speed, and a warning when a speed camera is on the route ahead. */
+/** Share the route (with its driver-reported no-entry roads) and add no-entry roads to it. */
+@Composable
+private fun RouteActions(vm: NavViewModel) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFFEFF6FF))
+                .clickable {
+                    val t = vm.routeShareText()
+                    if (t != null) ctx.startActivity(
+                        android.content.Intent.createChooser(
+                            android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+                                .putExtra(android.content.Intent.EXTRA_TEXT, t), "Share route"
+                        )
+                    )
+                },
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
+        ) {
+            ShareIcon(C.Primary, 18.dp); Spacer(Modifier.width(8.dp))
+            Text("Share route", color = C.Primary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Row(
+            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)).background(C.DangerBg).clickable { vm.beginReport() },
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
+        ) {
+            FlagIcon(C.Danger, 18.dp); Spacer(Modifier.width(8.dp))
+            Text("Add no-entry", color = C.Danger, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
 @Composable
 private fun NavSpeedRow(s: UiState) {
     val showCam = s.camDistM >= 0
