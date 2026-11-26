@@ -226,7 +226,26 @@ private fun RuleList(s: UiState, vm: NavViewModel) {
                             Text("Delete report", color = C.Danger, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                } else if (z.notification.isNotBlank()) Text(z.notification, color = C.Muted, fontSize = 12.sp)
+                } else {
+                    val n = s.notices.firstOrNull { it.id == z.notification }
+                    if (n != null) {
+                        Spacer(Modifier.height(6.dp))
+                        Text("Source: " + n.title + if (n.ref.isNotBlank()) " (${n.ref})" else "", color = C.Muted, fontSize = 12.sp)
+                        if (n.url.isNotBlank()) {
+                            Row(
+                                Modifier.clickable {
+                                    try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(n.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                                    catch (_: Exception) {}
+                                }.padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                InfoIcon(C.Primary, 16.dp)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Open notification", color = C.Primary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    } else if (z.notification.isNotBlank()) Text(z.notification, color = C.Muted, fontSize = 12.sp)
+                }
             }
         }
     }
