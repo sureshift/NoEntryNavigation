@@ -16,12 +16,18 @@ def main(out):
     con = duckdb.connect()
     con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
     x0, y0, x1, y1 = BBOX
+    src = f"read_parquet('s3://overturemaps-us-west-2/release/{rel}/theme=places/type=place/*', hive_partitioning=1)"
+    cols = {r[0]: r[1] for r in con.execute(f"DESCRIBE SELECT * FROM {src}").fetchall()}
+    print("columns:", ", ".join(cols))
+    cat = "COALESCE(p.basic_category, '')" if "basic_category" in cols else ("p.categories.primary" if "categories" in cols else "''")
+    ph = "p.phones[1]" if "phones" in cols else "NULL"
+    ad = "p.addresses[1]" if "addresses" in cols else None
     rows = con.execute(f"""
-        SELECT p.names.primary AS name, p.categories.primary AS cat,
+        SELECT p.names.primary AS name, {cat} AS cat,
                ST_Y(p.geometry) AS lat, ST_X(p.geometry) AS lon,
-               p.addresses[1].freeform AS street, p.addresses[1].locality AS loc, p.addresses[1].postcode AS pc,
-               p.phones[1] AS phone, p.confidence
-        FROM read_parquet('s3://overturemaps-us-west-2/release/{rel}/theme=places/type=place/*', hive_partitioning=1) AS p
+               {(ad + '.freeform') if ad else 'NULL'} AS street, {(ad + '.locality') if ad else 'NULL'} AS loc, {(ad + '.postcode') if ad else 'NULL'} AS pc,
+               {ph} AS phone, p.confidence
+        FROM {src} AS p
         WHERE p.bbox.xmin BETWEEN {x0} AND {x1} AND p.bbox.ymin BETWEEN {y0} AND {y1}
           AND p.names.primary IS NOT NULL AND p.confidence >= 0.6
     """).fetchall()
