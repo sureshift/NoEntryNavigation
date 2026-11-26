@@ -239,7 +239,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     }
 
     fun onMapLongPress(p: LatLon) {
-        if (_s.value.navigating) return
+        if (_s.value.navigating || _s.value.report == ReportStep.DETAILS) return
         _s.update { it.copy(pin = p) }
     }
 
@@ -247,8 +247,95 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
     fun showRules(show: Boolean) { _s.update { it.copy(screen = if (show) Screen.RULES else Screen.MAP) } }
 
+    fun selectRoute(i: Int) {
+        val st = _s.value
+        if (st.navigating) return
+        val r = st.routes.getOrNull(i) ?: return
+        _s.update { it.copy(route = r, remainingM = r.cum.last()) }
+    }
+
+    // ---------- driver reports ----------
+    fun beginReport() {
+        if (_s.value.navigating) return
+        _s.update {
+            it.copy(
+                screen = Screen.MAP, report = ReportStep.START, reportA = null, reportB = null, pin = null, editing = null,
+                message = "Long-press the map where the no-entry road STARTS."
+            )
+        }
+    }
+
+    fun cancelReport() {
+        _s.update { it.copy(report = ReportStep.NONE, reportA = null, reportB = null, pin = null, message = null) }
+    }
+
+    fun markReportPoint(p: LatLon) {
+        when (_s.value.report) {
+            ReportStep.START -> _s.update {
+                it.copy(reportA = p, report = ReportStep.END, pin = null, message = "Now long-press where the no-entry road ENDS (same road).")
+            }
+            ReportStep.END -> _s.update { it.copy(reportB = p, report = ReportStep.DETAILS, pin = null, message = null) }
+            else -> {}
+        }
+    }
+
+    /** windowKey: 0 = all day, 1 = 07:00-23:00, 2 = peak hours, 3 = night 23:00-07:00 */
+    fun saveReport(vehicles: Set<String>, windowKey: Int, name: String) {
+        val st = _s.value
+        val a = st.reportA ?: return
+        val b = st.reportB ?: return
+        val wins = when (windowKey) {
+            1 -> listOf(intArrayOf(420, 1380))
+            2 -> listOf(intArrayOf(420, 660), intArrayOf(1020, 1380))
+            3 -> listOf(intArrayOf(1380, 420))
+            else -> listOf(intArrayOf(0, 1440))
+        }
+        viewModelScope.launch {
+            _s.update { it.copy(busy = true) }
+            val err = try { engine.addReport(a, b, vehicles, wins, name) } catch (e: Throwable) { e.message ?: "Could not save" }
+            if (err != null) {
+                _s.update { it.copy(busy = false, message = err) }
+            } else {
+                _s.update {
+                    it.copy(busy = false, report = ReportStep.NONE, reportA = null, reportB = null, allZones = engine.allZones,
+                        message = "Thanks. Your no-entry report is saved on this phone and used for routing.")
+                }
+                refreshZones()
+                if (_s.value.dest != null) requestRoute()
+            }
+        }
+    }
+
+    fun deleteReport(id: String) {
+        viewModelScope.launch {
+            try { engine.deleteReport(id) } catch (_: Exception) {}
+            _s.update { it.copy(allZones = engine.allZones) }
+            refreshZones()
+            if (_s.value.dest != null) requestRoute()
+        }
+    }
+
+    fun exportReports(): String = engine.exportReports()
+
+    fun importReports(text: String) {
+        viewModelScope.launch {
+            val n = try { engine.importReports(text) } catch (_: Exception) { -1 }
+            _s.update {
+                it.copy(
+                    allZones = engine.allZones,
+                    message = when {
+                        n < 0 -> "No driver reports found in the copied text."
+                        n == 0 -> "Nothing new to import (already added, or the roads were not found)."
+                        else -> "Imported $n driver report${if (n > 1) "s" else ""}."
+                    }
+                )
+            }
+            if (n > 0) { refreshZones(); if (_s.value.dest != null) requestRoute() }
+        }
+    }
+
     fun clearRoute() {
-        _s.update { it.copy(dest = null, destName = "", origin = null, originName = "", route = null, message = null, editing = null, pin = null) }
+        _s.update { it.copy(dest = null, destName = "", origin = null, originName = "", route = null, routes = emptyList(), message = null, editing = null, pin = null) }
     }
 
     fun refreshZones() {
@@ -273,11 +360,14 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
             _s.update { it.copy(busy = true, message = null) }
             try {
                 val zs = engine.zonesFor(_s.value.vehicle.key)
-                val r = engine.route(from, dest, _s.value.vehicle)
+                val rs = engine.routes(from, dest, _s.value.vehicle)
+                // keep the alternative the driver had picked when the route is recalculated while driving
+                val keep = if (auto) rs.indexOfFirst { it.via == _s.value.route?.via && it.label == _s.value.route?.label } else -1
+                val r = rs[if (keep >= 0) keep else 0]
                 progressIdx = 0
                 offCount = 0
                 announced.clear()
-                _s.update { it.copy(route = r, busy = false, remainingM = r.cum.last(), zones = zs) }
+                _s.update { it.copy(route = r, routes = rs, busy = false, remainingM = r.cum.last(), zones = zs) }
                 updateZoneLinesNow(zs)
                 if (auto) {
                     announced.add(0)

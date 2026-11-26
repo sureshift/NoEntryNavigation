@@ -1,5 +1,7 @@
 package app.noentrynav
 
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -68,7 +70,7 @@ fun RulesScreen(s: UiState, vm: NavViewModel) {
                 Pill("Gazette notifications", tab == 1) { tab = 1 }
             }
             Spacer(Modifier.height(10.dp))
-            if (tab == 0) RuleList(s) else NoticeList(s)
+            if (tab == 0) RuleList(s, vm) else NoticeList(s)
         }
     }
 }
@@ -81,6 +83,14 @@ private fun Pill(text: String, sel: Boolean, onClick: () -> Unit) {
             .border(1.dp, if (sel) C.Ink else C.Line, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 9.dp)
     ) { Text(text, color = if (sel) Color.White else C.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
+}
+
+@Composable
+private fun ActionChip(text: String, fg: Color, bg: Color, modifier: Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.clip(RoundedCornerShape(14.dp)).background(bg).clickable(onClick = onClick).padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) { Text(text, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
 }
 
 @Composable
@@ -99,7 +109,8 @@ private fun Card(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun RuleList(s: UiState) {
+private fun RuleList(s: UiState, vm: NavViewModel) {
+    val ctx = LocalContext.current
     val activeIds = s.zones.map { it.id }.toSet()
     val groups = s.allZones.filter { s.vehicle.key in it.vehicles }.groupBy { it.ruleId }.values
         .sortedByDescending { g -> g.any { it.id in activeIds } }
@@ -107,6 +118,25 @@ private fun RuleList(s: UiState) {
         Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ActionChip("Report no-entry road", C.Danger, C.DangerBg, Modifier.weight(1.4f)) { vm.beginReport() }
+                ActionChip("Share", C.Primary, Color(0xFFEFF6FF), Modifier.weight(0.8f)) {
+                    try {
+                        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, vm.exportReports())
+                        ctx.startActivity(Intent.createChooser(send, "Share driver reports").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } catch (_: Exception) {}
+                }
+                ActionChip("Import", C.Primary, Color(0xFFEFF6FF), Modifier.weight(0.8f)) {
+                    try {
+                        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val t = cm.primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString() ?: ""
+                        vm.importReports(t)
+                    } catch (_: Exception) { vm.importReports("") }
+                }
+            }
+        }
+        s.message?.let { m -> item { StatusChip(m, if (m.startsWith("Imported") || m.startsWith("Thanks")) C.OkBg else C.Chip, if (m.startsWith("Imported") || m.startsWith("Thanks")) C.Ok else C.Muted) } }
         item {
             val n = groups.count { g -> g.any { it.id in activeIds } }
             if (n > 0) StatusChip("$n rule${if (n > 1) "s" else ""} active for ${s.vehicle.label} right now. Routes avoid them.", C.DangerBg, C.Danger)
@@ -119,11 +149,15 @@ private fun RuleList(s: UiState) {
             Card {
                 Row(verticalAlignment = Alignment.Top) {
                     Text(
-                        if (g.size > 1) "Notified market areas (${g.size})" else z.name,
+                        if (g.size > 1 && !z.community) "Notified market areas (${g.size})" else z.name,
                         color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)
                     )
                     Spacer(Modifier.width(8.dp))
                     if (active) Badge("Active now", C.DangerBg, C.Danger) else Badge("Not now", C.Chip, C.Muted)
+                }
+                if (z.community) {
+                    Spacer(Modifier.height(6.dp))
+                    Badge("Driver report", Color(0xFFFEF3C7), Color(0xFF92400E))
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("${z.windowText()} · ${daysText(z.days)}", color = C.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
@@ -137,12 +171,22 @@ private fun RuleList(s: UiState) {
                 }
                 Spacer(Modifier.height(8.dp))
                 val note = when {
+                    z.community -> "Applied to ${z.segs?.size ?: 0} road segments between the two reported points."
                     z.isRoad && !z.enforceable -> "Road not found on the map. This rule is NOT applied to routing."
                     z.isRoad -> "Applied to ${z.segs?.size ?: 0} road segments on the map. Extent is approximate."
                     else -> "Area boundary is approximate."
                 }
                 Text(note, color = if (z.isRoad && !z.enforceable) C.Danger else C.Muted, fontSize = 12.sp)
-                if (z.notification.isNotBlank()) Text(z.notification, color = C.Muted, fontSize = 12.sp)
+                if (z.community) {
+                    Text("Reported by a driver. Not an official notification.", color = C.Muted, fontSize = 12.sp)
+                    if (!z.reportId.startsWith("C-")) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Delete report", color = C.Danger, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { vm.deleteReport(z.reportId) }.padding(vertical = 4.dp)
+                        )
+                    }
+                } else if (z.notification.isNotBlank()) Text(z.notification, color = C.Muted, fontSize = 12.sp)
             }
         }
     }

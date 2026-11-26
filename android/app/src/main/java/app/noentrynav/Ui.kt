@@ -3,6 +3,7 @@ package app.noentrynav
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -113,6 +114,7 @@ fun MainScreen(vm: NavViewModel) {
     BackHandler(enabled = s.screen == Screen.RULES) { vm.showRules(false) }
     BackHandler(enabled = s.screen == Screen.MAP && s.pin != null) { vm.dismissPin() }
     BackHandler(enabled = s.screen == Screen.MAP && s.pin == null && s.editing != null) { vm.edit(null) }
+    BackHandler(enabled = s.screen == Screen.MAP && s.report != ReportStep.NONE) { vm.cancelReport() }
 
     Box(Modifier.fillMaxSize()) {
         MapViewHost(s, vm.mapController, { vm.onMapLongPress(it) }, vm::onViewport)
@@ -120,7 +122,7 @@ fun MainScreen(vm: NavViewModel) {
         if (s.navigating) NavTop(s, vm) else SearchTop(s, vm)
 
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
-            if (s.pin == null) {
+            if (s.pin == null && s.report != ReportStep.DETAILS) {
                 Row(Modifier.fillMaxWidth().padding(end = 14.dp, bottom = 12.dp), horizontalArrangement = Arrangement.End) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.End) {
                         if (!s.navigating) {
@@ -140,7 +142,8 @@ fun MainScreen(vm: NavViewModel) {
                 }
             }
             when {
-                s.pin != null -> PinSheet(s.pin!!, vm)
+                s.report == ReportStep.DETAILS -> ReportSheet(s, vm)
+                s.pin != null -> PinSheet(s.pin!!, s.report, vm)
                 s.navigating -> NavBottom(s, vm)
                 else -> PlanSheet(s, vm)
             }
@@ -380,6 +383,10 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
 
             val route = s.route
             if (route != null) {
+                if (s.routes.size > 1 && s.routes.any { it === route }) {
+                    RouteChips(s, vm)
+                    Spacer(Modifier.height(12.dp))
+                }
                 Text(
                     (if (s.origin != null) s.originName.ifBlank { "Start" } + " to " else "To ") + s.destName.ifBlank { "Dropped pin" },
                     color = C.Muted, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
@@ -389,7 +396,10 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                     Spacer(Modifier.width(10.dp))
                     Text("${"%.1f".format(route.distKm)} km", color = C.Muted, fontSize = 17.sp, modifier = Modifier.padding(bottom = 5.dp))
                 }
-                Text("Arrive ${arrivalAt(route.timeSec)}", color = C.Muted, fontSize = 14.sp)
+                Text(
+                    "Arrive ${arrivalAt(route.timeSec)}" + if (route.via.isNotBlank()) " · via ${route.via}" else "",
+                    color = C.Muted, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
                 route.warning?.let {
                     Spacer(Modifier.height(10.dp))
                     StatusChip(it, C.DangerBg, C.Danger) { vm.showRules(true) }
@@ -448,12 +458,19 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
 
             s.message?.let { msg ->
                 Spacer(Modifier.height(12.dp))
-                val neutral = msg.startsWith("Loading") || msg.startsWith("Waiting") || msg.startsWith("Routing from") || msg.startsWith("Location is off") || msg.contains("gazette rule")
-                val good = msg.startsWith("You have arrived")
+                val neutral = msg.startsWith("Loading") || msg.startsWith("Waiting") || msg.startsWith("Routing from") || msg.startsWith("Location is off") || msg.contains("gazette rule") || msg.contains("long-press", true)
+                val good = msg.startsWith("You have arrived") || msg.startsWith("Thanks") || msg.startsWith("Imported")
                 StatusChip(
                     msg,
                     if (good) C.OkBg else if (neutral) C.Chip else C.DangerBg,
                     if (good) C.Ok else if (neutral) C.Muted else C.Danger
+                )
+            }
+            if (s.report == ReportStep.START || s.report == ReportStep.END) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Cancel report", color = C.Danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { vm.cancelReport() }.padding(vertical = 6.dp)
                 )
             }
             Spacer(Modifier.height(10.dp))
@@ -463,7 +480,7 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
 }
 
 @Composable
-private fun PinSheet(p: LatLon, vm: NavViewModel) {
+private fun PinSheet(p: LatLon, step: ReportStep, vm: NavViewModel) {
     Surface(shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), color = Color.White, shadowElevation = 20.dp) {
         Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 18.dp)) {
             Box(
@@ -471,26 +488,157 @@ private fun PinSheet(p: LatLon, vm: NavViewModel) {
                     .clip(RoundedCornerShape(2.dp)).background(C.Line)
             )
             Spacer(Modifier.height(14.dp))
-            Text("Dropped pin", color = C.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(
+                when (step) {
+                    ReportStep.START -> "No-entry road starts here"
+                    ReportStep.END -> "No-entry road ends here"
+                    else -> "Dropped pin"
+                },
+                color = C.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold
+            )
             Text("%.5f, %.5f".format(p.lat, p.lon), color = C.Muted, fontSize = 14.sp)
             Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (step == ReportStep.START || step == ReportStep.END) {
                 Box(
-                    Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Chip)
-                        .clickable { vm.setOrigin(p) },
+                    Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Danger)
+                        .clickable { vm.markReportPoint(p) },
                     contentAlignment = Alignment.Center
-                ) { Text("Start here", color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                ) {
+                    Text(
+                        if (step == ReportStep.START) "Mark no-entry start" else "Mark no-entry end",
+                        color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Chip)
+                            .clickable { vm.setOrigin(p) },
+                        contentAlignment = Alignment.Center
+                    ) { Text("Start here", color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                    Box(
+                        Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Primary)
+                            .clickable { vm.setDestination(p) },
+                        contentAlignment = Alignment.Center
+                    ) { Text("Go here", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                }
+                Spacer(Modifier.height(10.dp))
                 Box(
-                    Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Primary)
-                        .clickable { vm.setDestination(p) },
+                    Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp)).background(C.DangerBg)
+                        .clickable { vm.beginReport(); vm.markReportPoint(p) },
                     contentAlignment = Alignment.Center
-                ) { Text("Go here", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                ) { Text("Report no-entry road from here", color = C.Danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
             }
             Spacer(Modifier.height(8.dp))
             Text(
                 "Cancel", color = C.Muted, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                modifier = Modifier.align(Alignment.CenterHorizontally).clickable { vm.dismissPin() }.padding(12.dp)
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+                    .clickable { if (step == ReportStep.NONE) vm.dismissPin() else vm.cancelReport() }.padding(12.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun SelChip(text: String, sel: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.clip(RoundedCornerShape(12.dp))
+            .background(if (sel) Color(0xFFEFF6FF) else Color.White)
+            .border(1.5.dp, if (sel) C.Primary else C.Line, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 11.dp),
+        contentAlignment = Alignment.Center
+    ) { Text(text, color = if (sel) C.Primary else C.Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
+}
+
+@Composable
+private fun ReportSheet(s: UiState, vm: NavViewModel) {
+    var veh by remember { mutableStateOf(setOf(s.vehicle.key)) }
+    var win by remember { mutableStateOf(0) }
+    var name by remember { mutableStateOf("") }
+    val wins = listOf("All day", "07-23", "Peak hours", "Night 23-07")
+    Surface(shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), color = Color.White, shadowElevation = 20.dp) {
+        Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 18.dp)) {
+            Box(
+                Modifier.align(Alignment.CenterHorizontally).width(38.dp).height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)).background(C.Line)
+            )
+            Spacer(Modifier.height(14.dp))
+            if (s.busy) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp)), color = C.Primary, trackColor = C.Chip
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+            Text("Report no-entry road", color = C.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("From the first red pin to the second. Used for routing on this phone.", color = C.Muted, fontSize = 14.sp)
+            Spacer(Modifier.height(14.dp))
+            Text("Vehicles", color = C.Muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                VEHICLES.forEach { v ->
+                    SelChip(v.label, v.key in veh, Modifier.weight(1f)) {
+                        veh = if (v.key in veh) (if (veh.size > 1) veh - v.key else veh) else veh + v.key
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("When", color = C.Muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                wins.forEachIndexed { i, w -> SelChip(w, win == i, Modifier.weight(1f)) { win = i } }
+            }
+            Spacer(Modifier.height(12.dp))
+            Box(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(C.Chip).padding(horizontal = 14.dp, vertical = 13.dp)
+            ) {
+                BasicTextField(
+                    value = name, onValueChange = { name = it.take(60) }, singleLine = true,
+                    textStyle = TextStyle(fontSize = 15.sp, color = C.Ink), cursorBrush = SolidColor(C.Primary),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { inner ->
+                        Box { if (name.isEmpty()) Text("Road name (optional)", color = C.Muted, fontSize = 15.sp); inner() }
+                    }
+                )
+            }
+            s.message?.let { Spacer(Modifier.height(10.dp)); StatusChip(it, C.DangerBg, C.Danger) }
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    Modifier.weight(2f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Primary)
+                        .clickable(enabled = !s.busy) { vm.saveReport(veh, win, name) },
+                    contentAlignment = Alignment.Center
+                ) { Text("Save report", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                Box(
+                    Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Chip)
+                        .clickable { vm.cancelReport() },
+                    contentAlignment = Alignment.Center
+                ) { Text("Cancel", color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RouteChips(s: UiState, vm: NavViewModel) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        s.routes.forEachIndexed { i, r ->
+            val sel = r === s.route
+            val diff = ((r.timeSec - s.routes[0].timeSec) / 60).roundToInt()
+            Column(
+                Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
+                    .background(if (sel) Color(0xFFEFF6FF) else Color.White)
+                    .border(1.5.dp, if (sel) C.Primary else C.Line, RoundedCornerShape(14.dp))
+                    .clickable { vm.selectRoute(i) }.padding(horizontal = 10.dp, vertical = 9.dp)
+            ) {
+                Text(fmtTime(r.timeSec), color = if (sel) C.Primary else C.Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(
+                    if (i == 0) "Fastest" else "+$diff min", color = C.Muted, fontSize = 12.sp, maxLines = 1
+                )
+                Text(
+                    if (r.via.isBlank()) "${"%.1f".format(r.distKm)} km" else "via ${r.via}",
+                    color = C.Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

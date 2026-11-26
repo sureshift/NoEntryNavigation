@@ -50,6 +50,7 @@ class MapController {
     private var last: UiState? = null
     private var shownZones: List<Zone>? = null
     private var shownRoute: Route? = null
+    private var shownRoutes: List<Route>? = null
     private var shownRoads: Roads? = null
     private var shownLines: String? = ""
     private var fitted: Route? = null
@@ -80,6 +81,11 @@ class MapController {
                     lineColor("#DC2626"), lineWidth(5f), lineOpacity(0.85f), *round
                 )
             )
+            st.addSource(GeoJsonSource("alts", EMPTY_FC))
+            st.addLayer(
+                LineLayer("alts-casing", "alts").withProperties(lineColor("#FFFFFF"), lineWidth(9f), *round)
+            )
+            st.addLayer(LineLayer("alts-line", "alts").withProperties(lineColor("#94A3B8"), lineWidth(5.5f), *round))
             st.addSource(GeoJsonSource("route", EMPTY_FC))
             st.addLayer(
                 LineLayer("route-casing", "route").withProperties(
@@ -98,6 +104,13 @@ class MapController {
                 CircleLayer("origin-dot", "origin").withProperties(
                     circleColor("#FFFFFF"), circleRadius(8f),
                     circleStrokeColor("#2563EB"), circleStrokeWidth(4f)
+                )
+            )
+            st.addSource(GeoJsonSource("rep", EMPTY_FC))
+            st.addLayer(
+                CircleLayer("rep-dot", "rep").withProperties(
+                    circleColor("#DC2626"), circleRadius(9f),
+                    circleStrokeColor("#FFFFFF"), circleStrokeWidth(3f)
                 )
             )
             st.addSource(GeoJsonSource("pin", EMPTY_FC))
@@ -124,6 +137,7 @@ class MapController {
             style = st
             shownZones = null
             shownRoute = null
+            shownRoutes = null
             shownRoads = null
             shownLines = ""
             last?.let { render(it) }
@@ -157,6 +171,11 @@ class MapController {
             st.getSourceAs<GeoJsonSource>("roads-local")?.setGeoJson(s.roads.local)
             shownRoads = s.roads
         }
+        if (s.routes !== shownRoutes || s.route !== shownRoute) {
+            val others = s.routes.filter { it !== s.route }
+            st.getSourceAs<GeoJsonSource>("alts")?.setGeoJson(altsJson(if (s.route == null) emptyList() else others))
+            shownRoutes = s.routes
+        }
         if (s.route !== shownRoute) {
             st.getSourceAs<GeoJsonSource>("route")?.setGeoJson(routeJson(s.route))
             shownRoute = s.route
@@ -165,6 +184,7 @@ class MapController {
             st.getSourceAs<GeoJsonSource>("zone-roads")?.setGeoJson(s.zoneLines ?: EMPTY_FC)
             shownLines = s.zoneLines
         }
+        st.getSourceAs<GeoJsonSource>("rep")?.setGeoJson(multiPointJson(listOfNotNull(s.reportA, s.reportB)))
         st.getSourceAs<GeoJsonSource>("origin")?.setGeoJson(pointJson(s.origin))
         st.getSourceAs<GeoJsonSource>("pin")?.setGeoJson(pointJson(s.pin))
         st.getSourceAs<GeoJsonSource>("dest")?.setGeoJson(pointJson(s.dest))
@@ -227,6 +247,26 @@ class MapController {
         r.points.forEach { coords.put(JSONArray().put(it.lon).put(it.lat)) }
         return JSONObject().put("type", "Feature").put("properties", JSONObject())
             .put("geometry", JSONObject().put("type", "LineString").put("coordinates", coords)).toString()
+    }
+
+    private fun altsJson(rs: List<Route>): String {
+        if (rs.isEmpty()) return EMPTY_FC
+        val lines = JSONArray()
+        rs.forEach { r ->
+            val c = JSONArray()
+            r.points.forEach { c.put(JSONArray().put(it.lon).put(it.lat)) }
+            lines.put(c)
+        }
+        return JSONObject().put("type", "Feature").put("properties", JSONObject())
+            .put("geometry", JSONObject().put("type", "MultiLineString").put("coordinates", lines)).toString()
+    }
+
+    private fun multiPointJson(ps: List<LatLon>): String {
+        if (ps.isEmpty()) return EMPTY_FC
+        val c = JSONArray()
+        ps.forEach { c.put(JSONArray().put(it.lon).put(it.lat)) }
+        return JSONObject().put("type", "Feature").put("properties", JSONObject())
+            .put("geometry", JSONObject().put("type", "MultiPoint").put("coordinates", c)).toString()
     }
 
     private fun pointJson(p: LatLon?): String {

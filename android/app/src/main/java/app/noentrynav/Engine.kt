@@ -6,7 +6,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.BitSet
 import java.io.File
+import java.util.BitSet
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.Calendar
@@ -36,6 +38,10 @@ class Engine(private val ctx: Context) : SegStore {
     private var db: SQLiteDatabase? = null
     private lateinit var graph: Graph
     private var zones: List<Zone> = emptyList()
+    private var base: List<Zone> = emptyList()
+    private val reports = ArrayList<Report>()
+    private val reportZoneCache = HashMap<String, Zone?>()
+    private var nextReportZoneId = 100000L
     private val lineCache = HashMap<Long, String>()
 
     /** Everything the rules screen needs. */
@@ -201,9 +207,11 @@ class Engine(private val ctx: Context) : SegStore {
         } catch (e: Exception) {
             warns.add("Gazette rules file could not be read (${e.message})")
         }
-        zones = zs
+        base = zs
         notices = ns
         ruleWarnings = warns
+        loadReports()
+        rebuildZones()
     }
 
     fun zonesFor(vclass: String): List<Zone> {
@@ -270,11 +278,28 @@ class Engine(private val ctx: Context) : SegStore {
         return null
     }
 
-    suspend fun route(from: LatLon, to: LatLon, v: Vehicle): Route = withContext(Dispatchers.Default) {
+    private fun segSet(pieces: List<Piece>): Set<Int> = pieces.filter { it.seg >= 0 }.map { it.seg }.toSet()
+
+    private fun segLenSum(set: Collection<Int>): Double = set.sumOf { graph.segLen[it].toDouble() }
+
+    /** The road that carries most of the route (optionally only the part not shared with [exclude]). */
+    private fun via(pieces: List<Piece>, exclude: Set<Int>?): String {
+        val m = HashMap<String, Double>()
+        for (pc in pieces) {
+            if (pc.name.isBlank()) continue
+            if (exclude != null && pc.seg in exclude) continue
+            m[pc.name] = (m[pc.name] ?: 0.0) + Planner.polyLen(pc.pts)
+        }
+        return m.maxByOrNull { it.value }?.key ?: ""
+    }
+
+    /** Fastest legal route plus up to two alternatives that use different roads. */
+    suspend fun routes(from: LatLon, to: LatLon, v: Vehicle): List<Route> = withContext(Dispatchers.Default) {
         val prof = Profile(true, v.height, v.weight, v.speedFactor)
         val so = snap(from, prof) ?: throw RuntimeException("The start point is outside the Delhi map data.")
         val sd = snap(to, prof) ?: throw RuntimeException("That destination is outside the Delhi map data.")
         val active = zonesFor(v.key)
+        val applied = active.map { Pair(it.id, it.name) }
         val blocked = Planner.blockedSegs(graph, active, so.proj, sd.proj)
         var pieces = Planner.plan(graph, this@Engine, prof, blocked, so, sd)
         var warn: String? = null
@@ -283,9 +308,163 @@ class Engine(private val ctx: Context) : SegStore {
             if (pieces != null) warn = "No route avoids every no-entry rule right now. This is the shortest route and it passes restricted roads."
         }
         if (pieces == null) throw RuntimeException("No route found. A vehicle height/weight limit or one-way roads may be blocking every way.")
-        val r = Planner.buildRoute(pieces, prof, active.map { Pair(it.id, it.name) })
-        r.warning = warn
-        r
+        val primary = Planner.buildRoute(pieces, prof, applied)
+        primary.warning = warn
+        primary.label = "Fastest"
+        primary.via = via(pieces, null)
+        val out = ArrayList<Route>()
+        out.add(primary)
+
+        val pSegs = segSet(pieces)
+        val total = segLenSum(pSegs)
+        if (warn == null && total > 1500.0) {
+            val accepted = ArrayList<Set<Int>>().apply { add(pSegs) }
+            val alts = ArrayList<Route>()
+            for ((fa, fb) in listOf(0.12 to 0.40, 0.30 to 0.60, 0.50 to 0.80, 0.70 to 0.92, 0.20 to 0.75)) {
+                if (alts.size >= 2) break
+                try {
+                    val bl = (blocked?.clone() as? BitSet) ?: BitSet(graph.nSegs)
+                    var cum = 0.0
+                    for (pc in pieces) {
+                        if (pc.seg < 0) continue
+                        val f0 = cum / total
+                        cum += graph.segLen[pc.seg]
+                        val f1 = cum / total
+                        if (f1 > fa && f0 < fb) bl.set(pc.seg)
+                    }
+                    val p2 = Planner.plan(graph, this@Engine, prof, bl, so, sd) ?: continue
+                    val s2 = segSet(p2)
+                    val len2 = segLenSum(s2)
+                    if (len2 <= 0.0) continue
+                    if (accepted.any { segLenSum(s2.intersect(it)) / len2 > 0.8 }) continue
+                    val r2 = Planner.buildRoute(p2, prof, applied)
+                    if (r2.timeSec > primary.timeSec * 1.8 + 600) continue
+                    r2.via = via(p2, pSegs)
+                    accepted.add(s2)
+                    alts.add(r2)
+                } catch (e: Exception) { /* skip this alternative */ }
+            }
+            alts.sortBy { it.timeSec }
+            alts.forEachIndexed { i, r -> r.label = "Alternative ${i + 1}"; out.add(r) }
+        }
+        out
+    }
+
+    // ---- driver reports (crowd-sourced no-entry stretches, stored on the phone and shared as text) ----
+
+    private fun prefs() = ctx.getSharedPreferences("noentry", Context.MODE_PRIVATE)
+
+    private fun reportToJson(r: Report): JSONObject = JSONObject()
+        .put("id", r.id).put("name", r.name).put("ts", r.ts)
+        .put("a", JSONArray().put(r.a.lat).put(r.a.lon)).put("b", JSONArray().put(r.b.lat).put(r.b.lon))
+        .put("vehicles", JSONArray(r.vehicles.toList()))
+        .put("windows", JSONArray(r.windows.map { JSONArray().put(it[0]).put(it[1]) }))
+
+    private fun reportFromJson(o: JSONObject): Report {
+        val va = o.getJSONArray("a"); val vb = o.getJSONArray("b")
+        val a = LatLon(va.getDouble(0), va.getDouble(1)); val b = LatLon(vb.getDouble(0), vb.getDouble(1))
+        require(a.lat in 28.0..29.2 && a.lon in 76.5..77.8 && b.lat in 28.0..29.2 && b.lon in 76.5..77.8) { "outside Delhi" }
+        val vs = o.getJSONArray("vehicles")
+        val veh = (0 until vs.length()).map { vs.getString(it) }.filter { it in setOf("lcv", "mcv", "hcv") }.toSet()
+        require(veh.isNotEmpty()) { "no vehicles" }
+        val wa = o.getJSONArray("windows")
+        val wins = (0 until wa.length()).map { k -> wa.getJSONArray(k).let { intArrayOf(it.getInt(0).coerceIn(0, 1440), it.getInt(1).coerceIn(0, 1440)) } }
+        require(wins.isNotEmpty()) { "no hours" }
+        return Report(o.getString("id").take(40), o.optString("name").take(80), a, b, veh, wins, o.optLong("ts"))
+    }
+
+    private fun loadReports() {
+        reports.clear()
+        try {   // reports shipped inside the app (curated in the repo as community.json, ids start with C-)
+            val txt = ctx.assets.open("community.json").bufferedReader().use { it.readText() }
+            val arr = JSONObject(txt).optJSONArray("noentry_reports") ?: JSONArray()
+            for (i in 0 until arr.length()) try { reports.add(reportFromJson(arr.getJSONObject(i))) } catch (_: Exception) {}
+        } catch (_: Exception) {}
+        try {
+            val arr = JSONArray(prefs().getString("reports", "[]"))
+            for (i in 0 until arr.length()) try { reports.add(reportFromJson(arr.getJSONObject(i))) } catch (_: Exception) {}
+        } catch (_: Exception) {}
+    }
+
+    private fun saveReports() {
+        val arr = JSONArray()
+        reports.filter { !it.id.startsWith("C-") }.forEach { arr.put(reportToJson(it)) }
+        prefs().edit().putString("reports", arr.toString()).apply()
+    }
+
+    private fun reportZone(r: Report): Zone? {
+        val prof = Profile(false, 0.0, 0.0, 1.0)
+        val so = snap(r.a, prof) ?: return null
+        val sd = snap(r.b, prof) ?: return null
+        val straight = Geo.dist(r.a, r.b)
+        var pieces = Planner.plan(graph, this, prof, null, so, sd)
+        if (pieces == null) pieces = Planner.plan(graph, this, prof, null, sd, so)   // one-way roads: try the other direction
+        if (pieces == null) return null
+        val len = pieces.sumOf { Planner.polyLen(it.pts) }
+        if (len > 8000.0 || len > maxOf(1500.0, straight * 3.0)) return null          // the two points are not on one road
+        val segs = pieces.filter { it.seg >= 0 }.map { it.seg }.distinct().toIntArray()
+        return Zone(
+            nextReportZoneId++, "U-${r.id}", r.name.ifBlank { "Driver-reported no-entry" }, "Driver report",
+            emptyList(), segs, r.vehicles, (1..7).toSet(), r.windows, 0, 99999999, true, r.id
+        )
+    }
+
+    private fun rebuildZones() {
+        val rz = ArrayList<Zone>()
+        for (r in reports) {
+            val z = reportZoneCache.getOrPut(r.id) { try { reportZone(r) } catch (_: Exception) { null } }
+            if (z != null) rz.add(z)
+        }
+        zones = base + rz
+    }
+
+    suspend fun addReport(
+        a: LatLon, b: LatLon, vehicles: Set<String>, windows: List<IntArray>, name: String
+    ): String? = withContext(Dispatchers.IO) {
+        val r = Report("U" + System.currentTimeMillis().toString(36), name.trim(), a, b, vehicles, windows, System.currentTimeMillis())
+        val z = try { reportZone(r) } catch (_: Exception) { null }
+            ?: return@withContext "Start and end must be on the same road, within a few km of each other. Try placing them closer to the road."
+        reports.add(r)
+        reportZoneCache[r.id] = z
+        saveReports()
+        rebuildZones()
+        null
+    }
+
+    suspend fun deleteReport(id: String) = withContext(Dispatchers.IO) {
+        if (id.startsWith("C-")) return@withContext
+        reports.removeAll { it.id == id }
+        reportZoneCache.remove(id)
+        saveReports()
+        rebuildZones()
+    }
+
+    /** Text a driver can share (WhatsApp etc.). Only reports made or imported on this phone. */
+    fun exportReports(): String {
+        val arr = JSONArray()
+        reports.filter { !it.id.startsWith("C-") }.forEach { arr.put(reportToJson(it)) }
+        return "NoEntry Nav driver reports. Copy this whole message, open NoEntry Nav > Rules > Import.\n" +
+            JSONObject().put("noentry_reports", arr).toString()
+    }
+
+    /** Returns how many new reports were added, or -1 if the text holds no reports. */
+    suspend fun importReports(text: String): Int = withContext(Dispatchers.IO) {
+        val i = text.indexOf('{')
+        val j = text.lastIndexOf('}')
+        if (i < 0 || j <= i) return@withContext -1
+        val arr = try { JSONObject(text.substring(i, j + 1)).optJSONArray("noentry_reports") } catch (_: Exception) { null }
+            ?: return@withContext -1
+        var added = 0
+        for (k in 0 until arr.length()) {
+            try {
+                val r = reportFromJson(arr.getJSONObject(k))
+                if (r.id.startsWith("C-") || reports.any { it.id == r.id }) continue
+                val z = reportZone(r) ?: continue
+                reports.add(r); reportZoneCache[r.id] = z; added++
+            } catch (_: Exception) {}
+        }
+        if (added > 0) { saveReports(); rebuildZones() }
+        added
     }
 
     // ---- search ----

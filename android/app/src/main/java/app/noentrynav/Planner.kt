@@ -13,7 +13,7 @@ interface SegStore {
 /** A GPS point snapped onto a road segment. `idx` = geometry vertex before the projection point. */
 class Snap(val seg: Int, val distM: Double, val alongM: Double, val pts: List<LatLon>, val idx: Int, val proj: LatLon)
 
-class Piece(val name: String, val pts: List<LatLon>, val speedKph: Double)
+class Piece(val name: String, val pts: List<LatLon>, val speedKph: Double, val seg: Int = -1)
 
 object Planner {
 
@@ -91,12 +91,12 @@ object Planner {
             if (sd.alongM >= so.alongM && g.dirValid(so.seg, 0)) {
                 val pts = if (so.idx == sd.idx) listOf(so.proj, sd.proj)
                 else listOf(so.proj) + so.pts.subList(so.idx + 1, sd.idx + 1) + sd.proj
-                return listOf(Piece(nameO, pts, kphO))
+                return listOf(Piece(nameO, pts, kphO, so.seg))
             }
             if (sd.alongM < so.alongM && g.dirValid(so.seg, 1)) {
                 val pts = if (so.idx == sd.idx) listOf(so.proj, sd.proj)
                 else listOf(so.proj) + so.pts.subList(sd.idx + 1, so.idx + 1).reversed() + sd.proj
-                return listOf(Piece(nameO, pts, kphO))
+                return listOf(Piece(nameO, pts, kphO, so.seg))
             }
         }
 
@@ -116,15 +116,15 @@ object Planner {
 
         val pieces = ArrayList<Piece>()
         val first = if (res.seed.viaDir == 0) fwd(so) else back(so)
-        if (first.size >= 2) pieces.add(Piece(nameO, first, kphO))
+        if (first.size >= 2) pieces.add(Piece(nameO, first, kphO, so.seg))
         for (e in res.edges) {
             val seg = e shr 1
             var pts = st.geom(seg)
             if ((e and 1) == 1) pts = pts.reversed()
-            pieces.add(Piece(st.name(seg), pts, max(5, g.segSpeed[seg]).toDouble()))
+            pieces.add(Piece(st.name(seg), pts, max(5, g.segSpeed[seg]).toDouble(), seg))
         }
         val last = if (res.goal.enterDir == 0) toDestFromA(sd) else toDestFromB(sd)
-        if (last.size >= 2) pieces.add(Piece(st.name(sd.seg), last, max(5, g.segSpeed[sd.seg]).toDouble()))
+        if (last.size >= 2) pieces.add(Piece(st.name(sd.seg), last, max(5, g.segSpeed[sd.seg]).toDouble(), sd.seg))
         return pieces
     }
 

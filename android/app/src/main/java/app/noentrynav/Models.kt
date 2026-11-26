@@ -22,7 +22,9 @@ class Zone(
     val days: Set<Int> = setOf(1, 2, 3, 4, 5, 6, 7),   // ISO: 1 = Monday .. 7 = Sunday
     val windows: List<IntArray> = listOf(intArrayOf(0, 1440)),   // [startMin, endMin) ; end < start crosses midnight
     val validFrom: Int = 0,                     // yyyymmdd
-    val validTo: Int = 99999999
+    val validTo: Int = 99999999,
+    val community: Boolean = false,             // driver-reported (not from the gazette)
+    val reportId: String = ""
 ) {
     val isRoad: Boolean get() = segs != null
     /** For a road rule: how many map segments matched. A road rule with 0 matches cannot be enforced. */
@@ -85,7 +87,20 @@ class Route(
 ) {
     /** Set when no legal route existed and the shortest route is shown instead. */
     var warning: String? = null
+    var label: String = "Fastest"
+    var via: String = ""
 }
+
+/** A driver-reported no-entry stretch: from point [a] to point [b] along one road. */
+class Report(
+    val id: String,
+    val name: String,
+    val a: LatLon,
+    val b: LatLon,
+    val vehicles: Set<String>,
+    val windows: List<IntArray>,
+    val ts: Long
+)
 
 val VEHICLES = listOf(
     Vehicle("lcv", "LCV", "up to 7.5 t", 2.6, 6.0, 6.0, 0.9),
@@ -95,6 +110,7 @@ val VEHICLES = listOf(
 
 enum class Field { FROM, TO }
 enum class Screen { MAP, RULES }
+enum class ReportStep { NONE, START, END, DETAILS }
 
 data class UiState(
     val me: LatLon? = null,
@@ -106,6 +122,10 @@ data class UiState(
     val editing: Field? = null,
     val pin: LatLon? = null,             // long-pressed map point waiting for "start / destination" choice
     val route: Route? = null,
+    val routes: List<Route> = emptyList(),   // fastest + alternatives; `route` is the selected one
+    val report: ReportStep = ReportStep.NONE,
+    val reportA: LatLon? = null,
+    val reportB: LatLon? = null,
     val zones: List<Zone> = emptyList(), // rules active right now for the selected vehicle
     val allZones: List<Zone> = emptyList(),
     val notices: List<Notice> = emptyList(),

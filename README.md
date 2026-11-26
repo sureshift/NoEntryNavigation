@@ -21,6 +21,15 @@ Based on the Delhi Transport Dept notifications of 3 Aug 2021 and 12 Aug 2022 an
 CI runs `tools/check_rules.py` and prints how many map segments each road rule matched (warnings for rules matching nothing; those are not enforced).
 Road extents and area boxes are approximate. Older 1996-2017 road notifications are not encoded yet.
 
+## Driver reports (crowd-sourced no-entry)
+Long-press the map > "Report no-entry road from here", then long-press the end point, pick vehicles and hours.
+The app finds the road between the two points and avoids it in routing. Reports stay on the phone (no server);
+use Rules > Share to send them (WhatsApp etc.) and Rules > Import to add reports a colleague sent.
+To ship reports to everyone, add them to `android/app/src/main/assets/community.json` (ids must start with `C-`) and push.
+
+## Alternative routes
+After a route is found, up to two alternatives that use different roads are shown as tabs on the sheet (grey lines on the map).
+
 ## Change the area
 Edit the `--bbox` in `.github/workflows/build-apk.yml` (min_lon,min_lat,max_lon,max_lat).
 
