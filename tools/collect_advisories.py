@@ -36,7 +36,7 @@ def extract(page, base):
         if len(text) < 8 or GENERIC.match(text):
             continue
         # menu items such as "Traffic Advisory" are short; real entries are documents or long descriptive titles
-        if not is_doc and len(text) < 25:
+        if not is_doc and len(text) < 32:
             continue
         if not (is_doc or KEY.search(text)):
             continue
@@ -55,7 +55,7 @@ def follow_links(page, base):
     for href, inner in A.findall(page):
         url = urllib.parse.urljoin(base, html.unescape(href.strip()))
         url = url.split("#")[0]
-        if url.startswith("https://traffic.delhipolice.gov.in/") and FOLLOW.search(url) and not re.search(r"\.(pdf|docx?|jpg|png)$", url, re.I):
+        if re.fullmatch(r"[A-Za-z0-9/_.:=&%?-]+", url) and url.startswith("https://traffic.delhipolice.gov.in/") and FOLLOW.search(url) and not re.search(r"\.(pdf|docx?|jpg|png)$", url, re.I):
             if url not in links:
                 links.append(url)
     return links
