@@ -268,13 +268,18 @@ private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
                     s.results.forEachIndexed { i, p ->
                         val parts = p.name.split(" · ")
                         if (i > 0 || s.editing == Field.FROM) Box(Modifier.fillMaxWidth().height(1.dp).background(C.Line))
-                        Column(
+                        Row(
                             Modifier.fillMaxWidth()
                                 .clickable { query = ""; focus.clearFocus(); vm.pickPlace(p) }
-                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(parts[0], color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            if (parts.size > 1) Text(parts[1], color = C.Muted, fontSize = 13.sp, maxLines = 1)
+                            PinIcon(C.Muted, 22.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(parts[0], color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                if (parts.size > 1) Text(parts[1], color = C.Muted, fontSize = 13.sp, maxLines = 1)
+                            }
                         }
                     }
                 }
@@ -335,11 +340,14 @@ private fun BoxScope.NavTop(s: UiState, vm: NavViewModel) {
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Surface(shape = RoundedCornerShape(22.dp), color = Color.White, shadowElevation = 8.dp) {
-                Text(
-                    if (s.muted) "Voice off" else "Voice on",
-                    color = C.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable { vm.toggleMute() }.padding(horizontal = 18.dp, vertical = 13.dp)
-                )
+                Row(
+                    Modifier.clickable { vm.toggleMute() }.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    VolumeIcon(!s.muted, C.Ink, 20.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (s.muted) "Voice off" else "Voice on", color = C.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
             }
         }
     }
@@ -419,7 +427,11 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                         modifier = Modifier.weight(2f).height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = C.Primary)
-                    ) { Text("Start", fontSize = 17.sp, fontWeight = FontWeight.Bold) }
+                    ) {
+                        NavigateIcon(Color.White, 20.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Start", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    }
                     Box(
                         Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Chip)
                             .clickable { vm.clearRoute() },
@@ -504,10 +516,14 @@ private fun PinSheet(p: LatLon, step: ReportStep, vm: NavViewModel) {
                         .clickable { vm.markReportPoint(p) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        if (step == ReportStep.START) "Mark no-entry start" else "Mark no-entry end",
-                        color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FlagIcon(Color.White, 22.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (step == ReportStep.START) "Mark no-entry start" else "Mark no-entry end",
+                            color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -515,19 +531,37 @@ private fun PinSheet(p: LatLon, step: ReportStep, vm: NavViewModel) {
                         Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Chip)
                             .clickable { vm.setOrigin(p) },
                         contentAlignment = Alignment.Center
-                    ) { Text("Start here", color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(12.dp).clip(CircleShape).background(C.Primary).padding(3.dp).clip(CircleShape).background(Color.White))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Start here", color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                     Box(
                         Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Primary)
                             .clickable { vm.setDestination(p) },
                         contentAlignment = Alignment.Center
-                    ) { Text("Go here", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            PinIcon(Color.White, 20.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text("Go here", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
                 Spacer(Modifier.height(10.dp))
                 Box(
                     Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp)).background(C.DangerBg)
                         .clickable { vm.beginReport(); vm.markReportPoint(p) },
                     contentAlignment = Alignment.Center
-                ) { Text("Report no-entry road from here", color = C.Danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FlagIcon(C.Danger, 20.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Report no-entry road from here", color = C.Danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
             Spacer(Modifier.height(8.dp))
             Text(
@@ -569,7 +603,11 @@ private fun ReportSheet(s: UiState, vm: NavViewModel) {
                 )
                 Spacer(Modifier.height(10.dp))
             }
-            Text("Report no-entry road", color = C.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FlagIcon(C.Danger, 24.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("Report no-entry road", color = C.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
             Text("From the first red pin to the second. Used for routing on this phone.", color = C.Muted, fontSize = 14.sp)
             Spacer(Modifier.height(14.dp))
             Text("Vehicles", color = C.Muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
@@ -679,6 +717,7 @@ internal fun Segmented(current: Vehicle, onPick: (Vehicle) -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    TruckIcon(VEHICLES.indexOf(v).coerceAtLeast(0), if (sel) C.Primary else C.Muted, 30.dp)
                     Text(
                         v.label, color = if (sel) C.Primary else C.Ink, fontSize = 16.sp, maxLines = 1,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.SemiBold
@@ -698,7 +737,11 @@ internal fun StatusChip(text: String, bg: Color, fg: Color, onClick: (() -> Unit
             .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(fg))
+        when (fg) {
+            C.Danger -> WarnIcon(fg, 20.dp)
+            C.Ok -> CheckIcon(fg, 20.dp)
+            else -> InfoIcon(fg, 20.dp)
+        }
         Spacer(Modifier.width(10.dp))
         Text(text, color = fg, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }

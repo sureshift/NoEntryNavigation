@@ -86,11 +86,17 @@ private fun Pill(text: String, sel: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ActionChip(text: String, fg: Color, bg: Color, modifier: Modifier, onClick: () -> Unit) {
+private fun ActionChip(text: String, fg: Color, bg: Color, modifier: Modifier, icon: @Composable () -> Unit, onClick: () -> Unit) {
     Box(
         modifier.clip(RoundedCornerShape(14.dp)).background(bg).clickable(onClick = onClick).padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
-    ) { Text(text, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            icon()
+            Spacer(Modifier.width(6.dp))
+            Text(text, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        }
+    }
 }
 
 @Composable
@@ -120,14 +126,14 @@ private fun RuleList(s: UiState, vm: NavViewModel) {
     ) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ActionChip("Report no-entry road", C.Danger, C.DangerBg, Modifier.weight(1.4f)) { vm.beginReport() }
-                ActionChip("Share", C.Primary, Color(0xFFEFF6FF), Modifier.weight(0.8f)) {
+                ActionChip("Report road", C.Danger, C.DangerBg, Modifier.weight(1.2f), { FlagIcon(C.Danger, 18.dp) }) { vm.beginReport() }
+                ActionChip("Share", C.Primary, Color(0xFFEFF6FF), Modifier.weight(0.9f), { ShareIcon(C.Primary, 17.dp) }) {
                     try {
                         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, vm.exportReports())
                         ctx.startActivity(Intent.createChooser(send, "Share driver reports").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     } catch (_: Exception) {}
                 }
-                ActionChip("Import", C.Primary, Color(0xFFEFF6FF), Modifier.weight(0.8f)) {
+                ActionChip("Import", C.Primary, Color(0xFFEFF6FF), Modifier.weight(0.9f), { ImportIcon(C.Primary, 17.dp) }) {
                     try {
                         val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val t = cm.primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString() ?: ""
@@ -148,6 +154,14 @@ private fun RuleList(s: UiState, vm: NavViewModel) {
             val active = g.any { it.id in activeIds }
             Card {
                 Row(verticalAlignment = Alignment.Top) {
+                    Box(Modifier.padding(top = 2.dp, end = 10.dp)) {
+                        val ic = if (active) C.Danger else C.Muted
+                        when {
+                            z.community -> PersonIcon(ic, 20.dp)
+                            z.isRoad -> RoadIcon(ic, 20.dp)
+                            else -> AreaIcon(ic, 20.dp)
+                        }
+                    }
                     Text(
                         if (g.size > 1 && !z.community) "Notified market areas (${g.size})" else z.name,
                         color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)
@@ -160,7 +174,11 @@ private fun RuleList(s: UiState, vm: NavViewModel) {
                     Badge("Driver report", Color(0xFFFEF3C7), Color(0xFF92400E))
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("${z.windowText()} · ${daysText(z.days)}", color = C.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ClockIcon(C.Muted, 16.dp)
+                    Spacer(Modifier.width(6.dp))
+                    Text("${z.windowText()} · ${daysText(z.days)}", color = C.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
                 if (g.size > 1) {
                     Spacer(Modifier.height(4.dp))
                     Text(g.joinToString(", ") { it.name.removeSuffix(" market") }, color = C.Muted, fontSize = 13.sp)
@@ -181,10 +199,11 @@ private fun RuleList(s: UiState, vm: NavViewModel) {
                     Text("Reported by a driver. Not an official notification.", color = C.Muted, fontSize = 12.sp)
                     if (!z.reportId.startsWith("C-")) {
                         Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Delete report", color = C.Danger, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { vm.deleteReport(z.reportId) }.padding(vertical = 4.dp)
-                        )
+                        Row(Modifier.clickable { vm.deleteReport(z.reportId) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TrashIcon(C.Danger, 16.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text("Delete report", color = C.Danger, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 } else if (z.notification.isNotBlank()) Text(z.notification, color = C.Muted, fontSize = 12.sp)
             }
@@ -206,7 +225,15 @@ private fun NoticeList(s: UiState) {
                     "entry" -> Triple("Entry permission", Color(0xFFFEF3C7), Color(0xFF92400E))
                     else -> Triple("Advisory", C.Chip, C.Muted)
                 }
-                Badge(label, bg, fg)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    when (n.kind) {
+                        "timing" -> ClockIcon(fg, 18.dp)
+                        "entry" -> RulesIcon(fg, 18.dp)
+                        else -> InfoIcon(fg, 18.dp)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Badge(label, bg, fg)
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(n.title, color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
