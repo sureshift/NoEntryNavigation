@@ -546,24 +546,47 @@ class Engine(private val ctx: Context) : SegStore {
         val clean = q.trim().lowercase(Locale.ROOT).replace("\\", " ").replace("%", " ").replace("_", " ").replace("'", "")
         val toks = clean.split(Regex("\\s+")).filter { it.isNotEmpty() }.take(5)
         if (toks.isEmpty()) return@withContext emptyList()
-        val where = toks.joinToString(" AND ") { "(lname LIKE ? OR laddr LIKE ?)" }
+        // every typed word must start a word in the name or the address (so "ram" no longer matches "program")
+        val where = toks.joinToString(" AND ") { "(lname LIKE ? OR lname LIKE ? OR laddr LIKE ? OR laddr LIKE ?)" }
         val args = ArrayList<String>()
-        toks.forEach { args.add("%$it%"); args.add("%$it%") }
+        toks.forEach { args.add("$it%"); args.add("% $it%"); args.add("$it%"); args.add("% $it%") }
         val first = toks[0]
         val whole = clean
-        // best first: exact name, name starts with the text, a word starts with it; then localities, roads, businesses; then nearest
+        // all words in the name itself ranks above words only found in the address
+        val inName = toks.joinToString(" AND ") { "(lname LIKE '$it%' OR lname LIKE '% $it%')" }
         val sql = "SELECT name, kind, lat, lon, addr, phone, MIN(ord) AS o FROM (" +
             "SELECT name, kind, lat, lon, addr, phone, gk, " +
-            "(CASE WHEN lname = ? THEN 0 WHEN lname LIKE ? THEN 1 WHEN lname LIKE ? THEN 2 ELSE 3 END) * 1000 + " +
+            "(CASE WHEN lname = ? THEN 0 WHEN lname LIKE ? THEN 1 WHEN ($inName) THEN 2 ELSE 3 END) * 1000 + " +
             "(CASE WHEN kind IN ('suburb','neighbourhood','village','town','city','locality','quarter','hamlet','city_block') THEN 0 " +
             "WHEN kind = 'street' THEN 1 ELSE 2 END) * 100 + " +
-            "((lat - ${near.lat}) * (lat - ${near.lat}) + (lon - ${near.lon}) * (lon - ${near.lon})) * 100 AS ord " +
-            "FROM place WHERE $where) GROUP BY gk ORDER BY o LIMIT 12"
+            "MIN(99.0, ((lat - ${near.lat}) * (lat - ${near.lat}) + (lon - ${near.lon}) * (lon - ${near.lon})) * 100) AS ord " +
+            "FROM place WHERE $where) GROUP BY gk ORDER BY o LIMIT 30"
         val out = ArrayList<Place>()
-        d().rawQuery(sql, arrayOf(whole, "$first%", "% $first%") + args.toTypedArray()).use { c ->
+        d().rawQuery(sql, arrayOf(whole, "$first%") + args.toTypedArray()).use { c ->
             while (c.moveToNext()) {
                 out.add(Place(c.getString(0), LatLon(c.getDouble(2), c.getDouble(3)), c.getString(1) ?: "", c.getString(4) ?: "", c.getString(5) ?: ""))
             }
+        }
+        out
+    }
+
+    /** Optional online lookup in OpenStreetMap's own search service (Nominatim), limited to Delhi NCR. Only runs when the driver asks. */
+    suspend fun searchOnline(q: String): List<Place> = withContext(Dispatchers.IO) {
+        val enc = java.net.URLEncoder.encode(q.trim(), "UTF-8")
+        val url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=15&countrycodes=in&bounded=1" +
+            "&viewbox=76.7,29.0,77.7,28.2&addressdetails=0&q=$enc"
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.connectTimeout = 8000; conn.readTimeout = 12000
+        conn.setRequestProperty("User-Agent", "NoEntryNav/1.0 (sureshift.in)")
+        if (conn.responseCode != 200) throw IllegalStateException("OpenStreetMap search answered ${conn.responseCode}")
+        val arr = org.json.JSONArray(conn.inputStream.use { String(it.readBytes(), Charsets.UTF_8) })
+        val out = ArrayList<Place>()
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            val full = o.optString("display_name")
+            val name = o.optString("name").ifBlank { full.substringBefore(",") }
+            val addr = full.substringAfter(",", "").trim().split(",").take(3).joinToString(",").trim()
+            out.add(Place(name, LatLon(o.getDouble("lat"), o.getDouble("lon")), o.optString("type"), addr, ""))
         }
         out
     }

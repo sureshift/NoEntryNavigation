@@ -199,18 +199,40 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         if (_s.value.dest != null) requestRoute()
     }
 
+    private var searchJob: kotlinx.coroutines.Job? = null
+
     fun search(q: String) {
-        if (q.isBlank()) return
-        viewModelScope.launch {
-            _s.update { it.copy(busy = true, message = null) }
+        searchJob?.cancel()
+        if (q.isBlank()) { _s.update { it.copy(results = emptyList(), busy = false, message = null) }; return }
+        searchJob = viewModelScope.launch {
             try {
                 val r = engine.search(q.trim(), _s.value.me ?: _s.value.origin ?: LatLon(28.6139, 77.2090))
-                _s.update {
-                    it.copy(busy = false, results = r, message = if (r.isEmpty()) "No places found in Delhi NCR." else null)
-                }
+                _s.update { it.copy(busy = false, results = r, message = if (r.isEmpty()) "Nothing found offline. Try \"Search online\"." else null) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _s.update { it.copy(busy = false, message = "Search failed: ${e.message}") }
             }
+        }
+    }
+
+    fun searchOnline(q: String) {
+        if (q.isBlank()) return
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            _s.update { it.copy(busy = true, message = null) }
+            try {
+                val r = engine.searchOnline(q)
+                _s.update { it.copy(busy = false, results = r, message = if (r.isEmpty()) "OpenStreetMap found nothing for that in Delhi NCR." else null) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: java.net.UnknownHostException) {
+                _s.update { it.copy(busy = false, message = "No internet connection for online search") }
+            } catch (e: Exception) {
+                _s.update { it.copy(busy = false, message = "Online search failed: ${e.message}") }
+            }
+        }
+    }
         }
     }
 

@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -197,6 +200,10 @@ fun MainScreen(vm: NavViewModel) {
 @Composable
 private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
     var query by remember(s.editing, s.dest, s.origin) { mutableStateOf("") }
+    // live search while typing, with a short pause so every key press does not start a new query
+    LaunchedEffect(query) {
+        if (query.trim().length >= 2) { kotlinx.coroutines.delay(250); vm.search(query) } else vm.search("")
+    }
     val focus = LocalFocusManager.current
     val planning = s.dest != null || s.origin != null || s.editing == Field.FROM
     Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
@@ -289,10 +296,10 @@ private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
                 }
             }
         }
-        if (s.results.isNotEmpty() || s.editing == Field.FROM) {
+        if (s.results.isNotEmpty() || s.editing == Field.FROM || (s.editing != null && query.trim().length >= 2)) {
             Spacer(Modifier.height(8.dp))
             Surface(shape = RoundedCornerShape(20.dp), color = Color.White, shadowElevation = 10.dp) {
-                Column {
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                     if (s.editing == Field.FROM) {
                         Row(
                             Modifier.fillMaxWidth().clickable { query = ""; focus.clearFocus(); vm.useCurrentLocation() }
@@ -322,6 +329,18 @@ private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
                                 )
                                 if (p.phone.isNotBlank()) Text(p.phone, color = C.Muted, fontSize = 12.sp, maxLines = 1)
                             }
+                        }
+                    }
+                    if (query.trim().length >= 2) {
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(C.Line))
+                        Row(
+                            Modifier.fillMaxWidth().clickable { focus.clearFocus(); vm.searchOnline(query) }
+                                .padding(horizontal = 18.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SearchIcon(C.Primary)
+                            Spacer(Modifier.width(12.dp))
+                            Text("Search online (OpenStreetMap)", color = C.Primary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
