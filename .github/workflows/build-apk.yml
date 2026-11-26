@@ -20,18 +20,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install osmium
-      - name: Cache OSM download
+      - name: Cache Delhi extract
         uses: actions/cache@v4
         with:
-          path: data/north.osm.pbf
-          key: osm-north-zone-v1
-      - name: Download India north-zone extract
-        run: |
-          mkdir -p data
-          [ -f data/north.osm.pbf ] || curl -L --fail -o data/north.osm.pbf \
-            https://download.geofabrik.de/asia/india/northern-zone-latest.osm.pbf
-      - name: Clip to Delhi
-        run: osmium extract --bbox 76.83,28.40,77.35,28.89 --strategy complete_ways data/north.osm.pbf -o data/delhi.osm.pbf --overwrite
+          path: data/delhi.osm.pbf
+          key: delhi-extract-v1
+      - name: Fetch Delhi OSM extract (tries several mirrors)
+        run: bash tools/fetch_osm.sh
       - name: Build offline database
         run: python tools/build_data.py data/delhi.osm.pbf android/app/src/main/assets/delhi.db
 
