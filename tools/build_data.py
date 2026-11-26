@@ -5,6 +5,7 @@ usage: build_data.py delhi.osm.pbf out/delhi.db
 Needs: pip install osmium
 """
 import math, os, re, sqlite3, sys, time
+import hashlib
 import osmium
 
 # highway -> (road class, default km/h). Class: 0 motorway/trunk, 1 primary/secondary, 2 tertiary/residential, 3 service
@@ -164,8 +165,9 @@ class Build(osmium.SimpleHandler):
             return
         self.seen.add(key)
         # streets are grouped by name when searching (a long road is many OSM ways); other places stay separate
-        gk = ('s|' + lname) if grouped else ('p%d' % len(self.places))
-        self.places.append((name[:120], lname[:240], kind, lat, lon, addr[:160], addr.lower()[:160], phone[:40], gk))
+        # integer group key: streets with the same name share one (hash); every other place has its own negative number
+        gk = (int.from_bytes(hashlib.blake2b(lname.encode(), digest_size=7).digest(), 'big')) if grouped else -(len(self.places) + 1)
+        self.places.append((name[:120], lname[:240], kind, lat, lon, addr[:160], phone[:40], gk))
 
     @staticmethod
     def names_text(t, extra=()):
@@ -296,7 +298,7 @@ CREATE TABLE seg(id INTEGER PRIMARY KEY, a INTEGER, b INTEGER, len INTEGER, spee
 CREATE TABLE cam(id INTEGER PRIMARY KEY, lat REAL, lon REAL, lim INTEGER, kind TEXT);
 -- plain grid index (Android's SQLite may not ship the R-Tree module)
 CREATE TABLE seg_cell(cell INTEGER NOT NULL, seg INTEGER NOT NULL, PRIMARY KEY(cell, seg)) WITHOUT ROWID;
-CREATE TABLE place(id INTEGER PRIMARY KEY, name TEXT, lname TEXT, kind TEXT, lat REAL, lon REAL, addr TEXT, laddr TEXT, phone TEXT, gk TEXT);
+CREATE TABLE place(id INTEGER PRIMARY KEY, name TEXT, lname TEXT, kind TEXT, lat REAL, lon REAL, addr TEXT, phone TEXT, gk INTEGER);
 CREATE TABLE meta(k TEXT PRIMARY KEY, v TEXT);
 """
 
@@ -349,8 +351,7 @@ def main():
     con.executemany('INSERT INTO cam(lat,lon,lim,kind) VALUES (?,?,?,?)', b.cams)
     print(f'  {len(b.cams)} speed/red-light cameras, {sum(1 for x in b.segs if x[-1])} segments with a posted limit', flush=True)
     con.executemany('INSERT OR IGNORE INTO seg_cell VALUES (?,?)', b.cells)
-    con.executemany('INSERT INTO place(name,lname,kind,lat,lon,addr,laddr,phone,gk) VALUES (?,?,?,?,?,?,?,?,?)', b.places)
-    con.execute('CREATE INDEX place_l ON place(lname)')
+    con.executemany('INSERT INTO place(name,lname,kind,lat,lon,addr,phone,gk) VALUES (?,?,?,?,?,?,?,?)', b.places)
     con.execute("INSERT INTO meta VALUES ('built', ?)", (time.strftime('%Y-%m-%d'),))
     con.commit()
     con.close()

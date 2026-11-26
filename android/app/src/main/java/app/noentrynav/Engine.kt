@@ -591,7 +591,7 @@ class Engine(private val ctx: Context) : SegStore {
         val toks = clean.split(Regex("\\s+")).filter { it.isNotEmpty() }.take(5)
         if (toks.isEmpty()) return@withContext emptyList()
         // every typed word must start a word in the name or the address (so "ram" no longer matches "program")
-        val where = toks.joinToString(" AND ") { "(lname LIKE ? OR lname LIKE ? OR laddr LIKE ? OR laddr LIKE ?)" }
+        val where = toks.joinToString(" AND ") { "(lname LIKE ? OR lname LIKE ? OR addr LIKE ? OR addr LIKE ?)" }
         val args = ArrayList<String>()
         toks.forEach { args.add("$it%"); args.add("% $it%"); args.add("$it%"); args.add("% $it%") }
         val first = toks[0]
