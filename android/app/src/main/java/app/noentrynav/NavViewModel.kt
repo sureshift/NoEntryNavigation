@@ -50,7 +50,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
 
     /** Called by the map when the camera stops moving: draw the roads that are in view. */
     fun onViewport(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double, zoom: Double) {
-        if (!_s.value.ready || zoom < 9.0) return
+        if (!_s.value.ready || zoom < 10.0) return
         roadsJob?.cancel()
         roadsJob = viewModelScope.launch {
             try {
@@ -58,7 +58,9 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
                 val padLon = (maxLon - minLon) * 0.2
                 val r = engine.roads(minLat - padLat, minLon - padLon, maxLat + padLat, maxLon + padLon, zoom)
                 _s.update { it.copy(roads = r) }
-            } catch (e: Exception) { /* keep previous roads */ }
+            } catch (e: Exception) {
+                _s.update { it.copy(message = "Could not draw map: ${e.message}") }
+            }
         }
     }
 

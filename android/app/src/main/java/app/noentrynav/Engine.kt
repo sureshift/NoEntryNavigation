@@ -11,6 +11,22 @@ import java.util.TimeZone
 
 class Clock(val dayIso: Int, val minute: Int, val date: Int)
 
+private const val CELL = 0.005   // must match tools/build_data.py
+
+/** SQL condition selecting grid cells that cover a lat/lon box (row-major cell ids: row*100000+col). */
+private fun cellCond(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double): String {
+    val r0 = Math.floor(minLat / CELL).toLong()
+    val r1 = Math.floor(maxLat / CELL).toLong()
+    val c0 = Math.floor(minLon / CELL).toLong()
+    val c1 = Math.floor(maxLon / CELL).toLong()
+    val sb = StringBuilder()
+    for (r in r0..r1) {
+        if (sb.isNotEmpty()) sb.append(" OR ")
+        sb.append("cell BETWEEN ").append(r * 100000 + c0).append(" AND ").append(r * 100000 + c1)
+    }
+    return sb.toString()
+}
+
 /** Fully offline engine: road graph, places and no-entry rules all come from files inside the app. */
 class Engine(private val ctx: Context) : SegStore {
     private lateinit var db: SQLiteDatabase
@@ -104,12 +120,8 @@ class Engine(private val ctx: Context) : SegStore {
     // ---- snapping, routing ----
     private fun snap(p: LatLon, prof: Profile): Snap? {
         for (d in doubleArrayOf(0.0015, 0.006, 0.02)) {
-            val sql = String.format(
-                Locale.US,
-                "SELECT s.id, s.geom FROM seg_rt r JOIN seg s ON s.id = r.id " +
-                    "WHERE r.maxlat >= %f AND r.minlat <= %f AND r.maxlon >= %f AND r.minlon <= %f",
-                p.lat - d, p.lat + d, p.lon - d, p.lon + d
-            )
+            val sql = "SELECT s.id, s.geom FROM seg s WHERE s.id IN " +
+                "(SELECT seg FROM seg_cell WHERE ${cellCond(p.lat - d, p.lat + d, p.lon - d, p.lon + d)})"
             var best: Snap? = null
             db.rawQuery(sql, null).use { c ->
                 while (c.moveToNext()) {
@@ -121,7 +133,8 @@ class Engine(private val ctx: Context) : SegStore {
                     if (best == null || s.distM < best!!.distM) best = s
                 }
             }
-            if (best != null) return best
+            val b = best
+            if (b != null && (b.distM <= d * 100000.0 || d >= 0.02)) return b
         }
         return null
     }
@@ -161,12 +174,8 @@ class Engine(private val ctx: Context) : SegStore {
                 zoom < 14.5 -> 2
                 else -> 3
             }
-            val sql = String.format(
-                Locale.US,
-                "SELECT s.cls, s.geom FROM seg_rt r JOIN seg s ON s.id = r.id " +
-                    "WHERE r.maxlat >= %f AND r.minlat <= %f AND r.maxlon >= %f AND r.minlon <= %f AND s.cls <= %d LIMIT 20000",
-                minLat, maxLat, minLon, maxLon, maxCls
-            )
+            val sql = "SELECT s.cls, s.geom FROM seg s WHERE s.cls <= $maxCls AND s.id IN " +
+                "(SELECT seg FROM seg_cell WHERE ${cellCond(minLat, maxLat, minLon, maxLon)}) LIMIT 20000"
             val major = StringBuilder(); val main = StringBuilder(); val local = StringBuilder()
             db.rawQuery(sql, null).use { c ->
                 while (c.moveToNext()) {

@@ -20,6 +20,15 @@ POI_SKIP = {'bench', 'waste_basket', 'bicycle_parking', 'parking_space', 'parkin
             'vending_machine', 'shelter', 'drinking_water', 'recycling', 'yes', 'no'}
 
 
+CELL = 0.005   # grid cell size in degrees (~550 m). Must match Engine.kt
+
+
+def cells_for(minlat, maxlat, minlon, maxlon):
+    r0, r1 = int(math.floor(minlat / CELL)), int(math.floor(maxlat / CELL))
+    c0, c1 = int(math.floor(minlon / CELL)), int(math.floor(maxlon / CELL))
+    return [r * 100000 + c for r in range(r0, r1 + 1) for c in range(c0, c1 + 1)]
+
+
 def hav(lat1, lon1, lat2, lon2):
     p1, p2 = math.radians(lat1), math.radians(lat2)
     a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2
@@ -120,7 +129,7 @@ class Build(osmium.SimpleHandler):
         super().__init__()
         self.cnt = cnt
         self.nid, self.nodes = {}, []
-        self.segs, self.rt, self.places = [], [], []
+        self.segs, self.cells, self.places = [], [], []
         self.seen = set()
 
     def node_id(self, p):
@@ -200,14 +209,16 @@ class Build(osmium.SimpleHandler):
         self.segs.append((sid, a, b, int(round(length)), kph, ow, cls, flags, maxh, maxw, name, encode(ll)))
         lats = [p[0] for p in ll]
         lons = [p[1] for p in ll]
-        self.rt.append((sid, min(lats), max(lats), min(lons), max(lons)))
+        for cell in cells_for(min(lats), max(lats), min(lons), max(lons)):
+            self.cells.append((cell, sid))
 
 
 SCHEMA = """
 CREATE TABLE node(id INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL);
 CREATE TABLE seg(id INTEGER PRIMARY KEY, a INTEGER, b INTEGER, len INTEGER, speed INTEGER, oneway INTEGER,
                  cls INTEGER, flags INTEGER, maxh REAL, maxw REAL, name TEXT, geom TEXT);
-CREATE VIRTUAL TABLE seg_rt USING rtree(id, minlat, maxlat, minlon, maxlon);
+-- plain grid index (Android's SQLite may not ship the R-Tree module)
+CREATE TABLE seg_cell(cell INTEGER NOT NULL, seg INTEGER NOT NULL, PRIMARY KEY(cell, seg)) WITHOUT ROWID;
 CREATE TABLE place(id INTEGER PRIMARY KEY, name TEXT, lname TEXT, kind TEXT, lat REAL, lon REAL);
 CREATE TABLE meta(k TEXT PRIMARY KEY, v TEXT);
 """
@@ -234,7 +245,7 @@ def main():
     con.executescript(SCHEMA)
     con.executemany('INSERT INTO node VALUES (?,?,?)', ((i, la, lo) for i, (la, lo) in enumerate(b.nodes)))
     con.executemany('INSERT INTO seg VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', b.segs)
-    con.executemany('INSERT INTO seg_rt VALUES (?,?,?,?,?)', b.rt)
+    con.executemany('INSERT OR IGNORE INTO seg_cell VALUES (?,?)', b.cells)
     con.executemany('INSERT INTO place(name,lname,kind,lat,lon) VALUES (?,?,?,?,?)', b.places)
     con.execute('CREATE INDEX place_l ON place(lname)')
     con.execute("INSERT INTO meta VALUES ('built', ?)", (time.strftime('%Y-%m-%d'),))
