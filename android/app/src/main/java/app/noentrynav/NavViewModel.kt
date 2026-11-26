@@ -330,6 +330,30 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
     fun dismissPin() { _s.update { it.copy(pin = null) } }
 
+    /** The "Route details" page where anyone can fill in no-entry roads for the current route. */
+    fun showForm(show: Boolean) {
+        _s.update { it.copy(screen = if (show) Screen.FORM else Screen.MAP, message = null, pin = null, editing = null, report = ReportStep.NONE) }
+    }
+
+    /** Fill one end of the no-entry stretch from text, GPS, or the route's own start/end. */
+    fun setFormPoint(start: Boolean, p: LatLon) {
+        _s.update { if (start) it.copy(reportA = p, message = null) else it.copy(reportB = p, message = null) }
+    }
+
+    fun setFormPointFromText(start: Boolean, text: String) {
+        val st = _s.value
+        val p = CoordParse.parse(text, st.me ?: st.reportA ?: st.origin ?: st.dest)
+        if (p == null) {
+            _s.update { it.copy(message = "Could not read that. Use latitude, longitude (28.6139, 77.2090), a Google Maps link or a Plus Code, inside Delhi NCR.") }
+            return
+        }
+        setFormPoint(start, p)
+    }
+
+    fun clearFormPoint(start: Boolean) { _s.update { if (start) it.copy(reportA = null) else it.copy(reportB = null) } }
+
+    fun clearFormPoints() { _s.update { it.copy(reportA = null, reportB = null) } }
+
     fun showRules(show: Boolean) { _s.update { it.copy(screen = if (show) Screen.RULES else Screen.MAP) } }
 
     fun selectRoute(i: Int) {
@@ -424,8 +448,8 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
             val veh = VEHICLES.firstOrNull { it.key == sr?.veh } ?: _s.value.vehicle
             _s.update {
                 it.copy(
-                    allZones = engine.allZones, screen = Screen.MAP, navigating = false,
-                    vehicle = veh, origin = sr?.from ?: it.origin, originName = sr?.fromName ?: it.originName,
+                    allZones = engine.allZones, navigating = false,
+                    screen = if (sr != null) Screen.FORM else Screen.MAP, vehicle = veh, origin = sr?.from ?: it.origin, originName = sr?.fromName ?: it.originName,
                     dest = sr?.to ?: it.dest, destName = sr?.toName ?: it.destName, route = null, routes = emptyList(), editing = null, pin = null,
                     message = (if (sr != null) "Shared route loaded. " else "") + (if (n > 0) "Added $n no-entry report${if (n > 1) "s" else ""}. " else "") +
                         (if (sr != null) "Tap \"Add no-entry\" to mark roads on this route." else "")

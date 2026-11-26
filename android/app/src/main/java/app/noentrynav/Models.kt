@@ -132,7 +132,7 @@ val VEHICLES = listOf(
 )
 
 enum class Field { FROM, TO }
-enum class Screen { MAP, RULES }
+enum class Screen { MAP, RULES, FORM }
 enum class ReportStep { NONE, START, END, DETAILS }
 
 data class UiState(

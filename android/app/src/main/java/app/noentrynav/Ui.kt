@@ -122,6 +122,7 @@ fun MainScreen(vm: NavViewModel) {
     val density = LocalDensity.current
     SideEffect { view.keepScreenOn = s.navigating }
     BackHandler(enabled = s.screen == Screen.RULES) { vm.showRules(false) }
+    BackHandler(enabled = s.screen == Screen.FORM) { vm.showForm(false) }
     BackHandler(enabled = s.screen == Screen.MAP && s.pin != null) { vm.dismissPin() }
     BackHandler(enabled = s.screen == Screen.MAP && s.pin == null && s.editing != null) { vm.edit(null) }
     BackHandler(enabled = s.screen == Screen.MAP && s.report != ReportStep.NONE) { vm.cancelReport() }
@@ -206,6 +207,7 @@ fun MainScreen(vm: NavViewModel) {
         }
 
         if (s.screen == Screen.RULES) RulesScreen(s, vm)
+        if (s.screen == Screen.FORM) RouteFormScreen(s, vm)
     }
 }
 
@@ -854,7 +856,7 @@ private fun PinSheet(p: LatLon, step: ReportStep, vm: NavViewModel) {
 }
 
 @Composable
-private fun SelChip(text: String, sel: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun SelChip(text: String, sel: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier.clip(RoundedCornerShape(12.dp))
             .background(if (sel) Color(0xFFEFF6FF) else Color.White)
@@ -964,7 +966,7 @@ private fun RouteChips(s: UiState, vm: NavViewModel) {
 /** Speed-limit sign, your speed, and a warning when a speed camera is on the route ahead. */
 /** Share the route (with its driver-reported no-entry roads) and add no-entry roads to it. */
 @Composable
-private fun RouteActions(vm: NavViewModel) {
+internal fun RouteActions(vm: NavViewModel) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -984,7 +986,7 @@ private fun RouteActions(vm: NavViewModel) {
             Text("Share route", color = C.Primary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         }
         Row(
-            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)).background(C.DangerBg).clickable { vm.beginReport() },
+            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)).background(C.DangerBg).clickable { vm.showForm(true) },
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
         ) {
             FlagIcon(C.Danger, 18.dp); Spacer(Modifier.width(8.dp))
