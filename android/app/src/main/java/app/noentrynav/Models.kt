@@ -68,10 +68,10 @@ class Zone(
 
     companion object {
         fun statusColor(c: Int): String = when (c) {
-            0 -> "#7F1D1D"; 1 -> "#DC2626"; 2 -> "#F59E0B"; 3 -> "#3B82F6"; else -> "#DB2777"
+            0, 1, 4 -> "#DC2626"; 2 -> "#F59E0B"; else -> "#94A3B8"
         }
         fun statusLabel(c: Int): String = when (c) {
-            0 -> "Banned all day"; 1 -> "Banned now"; 2 -> "Starts within 1 hour"; 3 -> "Later today"; else -> "Driver-reported, now"
+            0, 1, 4 -> "No entry now"; 2 -> "Starts within 1 hour"; else -> "No entry later today"
         }
         fun hm(m: Int): String = if (m >= 1440) "24:00" else "%02d:%02d".format(m / 60, m % 60)
     }

@@ -148,7 +148,7 @@ private fun RuleList(s: UiState, vm: NavViewModel) {
         item {
             Column(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Map colours", color = C.Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                for (rowCats in listOf(listOf(1, 0, 2), listOf(3, 4))) {
+                for (rowCats in listOf(listOf(1, 2, 3))) {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         for (c in rowCats) Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(11.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(Zone.statusColor(c)))))

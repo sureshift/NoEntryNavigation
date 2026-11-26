@@ -157,6 +157,23 @@ fun MainScreen(vm: NavViewModel) {
                 val showZoom = free >= 130.dp
                 val showTarget = free >= 195.dp
                 val showRules = free >= 260.dp && !s.navigating
+                val cats = s.zoneSt.map { it.second }.filter { it >= 0 }.map { if (it == 0 || it == 4) 1 else it }.toSet().sorted()
+                if (cats.isNotEmpty() && free >= 130.dp && s.report == ReportStep.NONE) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp), color = Color.White, shadowElevation = 6.dp,
+                        modifier = Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 8.dp)
+                    ) {
+                        Column(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            cats.forEach { c ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(Modifier.width(18.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(android.graphics.Color.parseColor(Zone.statusColor(c)))))
+                                    Spacer(Modifier.width(7.dp))
+                                    Text(Zone.statusLabel(c), color = C.Ink, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                }
                 Row(
                     Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom
