@@ -132,8 +132,11 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                 val padLon = (maxLon - minLon) * 0.2
                 val r = engine.roads(minLat - padLat, minLon - padLon, maxLat + padLat, maxLon + padLon, zoom)
                 _s.update { it.copy(roads = r) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e   // a newer viewport replaced this one: not an error
             } catch (e: Exception) {
-                _s.update { it.copy(message = "Could not draw map: ${e.message}") }
+                if (e is IllegalStateException) return@launch   // database still opening
+                _s.update { it.copy(message = "Could not draw map: ${e.javaClass.simpleName} ${e.message ?: ""}".trim()) }
             }
         }
     }
