@@ -58,6 +58,10 @@ class MapController {
     private var lastRecenter = 0
     private var navZoom = 17.0
 
+    fun flyTo(p: LatLon, zoom: Double = 16.5) {
+        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(p.lat, p.lon), zoom), 600)
+    }
+
     /** + / - buttons. While navigating this adjusts the follow-camera zoom, otherwise it zooms the map. */
     fun zoomBy(d: Double) {
         val m = map ?: return

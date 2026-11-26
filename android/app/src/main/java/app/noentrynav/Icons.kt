@@ -23,51 +23,58 @@ import androidx.compose.ui.unit.dp
 private fun DrawScope.st(w: Float) = Stroke(width = w * 0.09f, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
 /**
- * Vehicle line icons, wider than tall (1.5 : 1).
- * variant 0 = small pickup truck with open cargo bed (Tata Ace class, LCV)
- * variant 1 = cab-over truck with closed box body (Canter class, MCV)
- * variant 2 = tractor with long semi-trailer (HCV)
+ * Vehicle illustrations in the flat, filled side-view style used by delivery apps (1.5 : 1).
+ * variant 0 = Tata Ace style mini truck (LCV)
+ * variant 1 = Canter style box truck (MCV)
+ * variant 2 = tractor with container trailer (HCV)
+ * `color` is the body colour; window, wheels and details are drawn in neutral tones.
  */
 @Composable
 fun TruckIcon(variant: Int, color: Color, dp: Dp = 28.dp) {
     Canvas(Modifier.size(dp * 1.5f, dp)) {
         val w = size.width
         val h = size.height
-        val sw = h * 0.075f
-        val s = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
         fun x(v: Float) = w * v
         fun y(v: Float) = h * v
-        fun line(x0: Float, y0: Float, x1: Float, y1: Float) = drawLine(color, Offset(x(x0), y(y0)), Offset(x(x1), y(y1)), strokeWidth = sw, cap = StrokeCap.Round)
-        fun wheel(cx: Float, r: Float = 0.085f) {
-            drawCircle(Color.White, h * r, Offset(x(cx), y(0.78f)))
-            drawCircle(color, h * r, Offset(x(cx), y(0.78f)), style = s)
+        val glass = Color(0xFFDCEBFA)
+        val dark = Color(0xFF263238)
+        val shade = color.copy(alpha = 0.55f)
+        fun rect(l: Float, t: Float, r: Float, b: Float, c: Color, cr: Float = 0.03f) =
+            drawRoundRect(c, Offset(x(l), y(t)), Size(x(r - l), y(b - t)), CornerRadius(h * cr))
+        fun poly(c: Color, vararg pts: Pair<Float, Float>) = drawPath(Path().apply {
+            moveTo(x(pts[0].first), y(pts[0].second)); for (i in 1 until pts.size) lineTo(x(pts[i].first), y(pts[i].second)); close()
+        }, c)
+        fun wheel(cx: Float, r: Float = 0.105f) {
+            drawCircle(dark, h * r, Offset(x(cx), y(0.80f)))
+            drawCircle(Color(0xFFB0BEC5), h * r * 0.45f, Offset(x(cx), y(0.80f)))
         }
         when (variant) {
-            0 -> {   // pickup: open bed + short bonnet cab
-                drawPath(Path().apply { moveTo(x(0.07f), y(0.44f)); lineTo(x(0.07f), y(0.70f)); lineTo(x(0.52f), y(0.70f)); lineTo(x(0.52f), y(0.44f)) }, color, style = s)
-                drawPath(Path().apply {
-                    moveTo(x(0.52f), y(0.70f)); lineTo(x(0.52f), y(0.32f)); lineTo(x(0.68f), y(0.32f)); lineTo(x(0.78f), y(0.50f))
-                    lineTo(x(0.93f), y(0.54f)); lineTo(x(0.93f), y(0.70f)); close()
-                }, color, style = s)
-                drawPath(Path().apply { moveTo(x(0.58f), y(0.40f)); lineTo(x(0.66f), y(0.40f)); lineTo(x(0.72f), y(0.50f)); lineTo(x(0.58f), y(0.50f)); close() }, color, style = s)
-                wheel(0.26f); wheel(0.76f)
+            0 -> {   // mini truck: short closed cargo box, small cab
+                rect(0.05f, 0.30f, 0.60f, 0.72f, color)
+                rect(0.05f, 0.62f, 0.60f, 0.72f, shade, 0.01f)
+                poly(color, 0.60f to 0.72f, 0.60f to 0.38f, 0.76f to 0.38f, 0.90f to 0.56f, 0.95f to 0.58f, 0.95f to 0.72f)
+                poly(glass, 0.64f to 0.45f, 0.75f to 0.45f, 0.85f to 0.57f, 0.64f to 0.57f)
+                rect(0.92f, 0.62f, 0.97f, 0.68f, Color(0xFFFFC107), 0.01f)
+                rect(0.03f, 0.72f, 0.97f, 0.76f, dark, 0.01f)
+                wheel(0.24f); wheel(0.78f)
             }
-            1 -> {   // cab-over with closed box
-                drawRoundRect(color, Offset(x(0.05f), y(0.16f)), Size(x(0.60f), y(0.54f)), CornerRadius(h * 0.05f), style = s)
-                drawPath(Path().apply {
-                    moveTo(x(0.65f), y(0.70f)); lineTo(x(0.65f), y(0.30f)); lineTo(x(0.84f), y(0.30f)); lineTo(x(0.94f), y(0.46f)); lineTo(x(0.94f), y(0.70f)); close()
-                }, color, style = s)
-                drawPath(Path().apply { moveTo(x(0.70f), y(0.37f)); lineTo(x(0.81f), y(0.37f)); lineTo(x(0.88f), y(0.47f)); lineTo(x(0.70f), y(0.47f)); close() }, color, style = s)
-                wheel(0.22f); wheel(0.36f); wheel(0.80f)
+            1 -> {   // box truck: tall closed body, cab-over cabin
+                rect(0.04f, 0.12f, 0.64f, 0.70f, color)
+                rect(0.04f, 0.58f, 0.64f, 0.70f, shade, 0.01f)
+                poly(color, 0.66f to 0.70f, 0.66f to 0.28f, 0.84f to 0.28f, 0.95f to 0.48f, 0.95f to 0.70f)
+                poly(glass, 0.70f to 0.35f, 0.83f to 0.35f, 0.90f to 0.48f, 0.70f to 0.48f)
+                rect(0.92f, 0.58f, 0.97f, 0.64f, Color(0xFFFFC107), 0.01f)
+                rect(0.03f, 0.70f, 0.97f, 0.75f, dark, 0.01f)
+                wheel(0.20f); wheel(0.34f); wheel(0.80f)
             }
-            else -> {   // tractor + long trailer
-                drawRoundRect(color, Offset(x(0.02f), y(0.20f)), Size(x(0.68f), y(0.44f)), CornerRadius(h * 0.04f), style = s)
-                line(0.02f, 0.68f, 0.97f, 0.68f)
-                drawPath(Path().apply {
-                    moveTo(x(0.74f), y(0.68f)); lineTo(x(0.74f), y(0.30f)); lineTo(x(0.88f), y(0.30f)); lineTo(x(0.97f), y(0.46f)); lineTo(x(0.97f), y(0.68f))
-                }, color, style = s)
-                drawPath(Path().apply { moveTo(x(0.78f), y(0.37f)); lineTo(x(0.86f), y(0.37f)); lineTo(x(0.92f), y(0.47f)); lineTo(x(0.78f), y(0.47f)); close() }, color, style = s)
-                wheel(0.11f, 0.075f); wheel(0.22f, 0.075f); wheel(0.33f, 0.075f); wheel(0.68f, 0.075f); wheel(0.90f, 0.075f)
+            else -> {   // tractor + container trailer
+                rect(0.02f, 0.14f, 0.70f, 0.66f, color)
+                for (i in 1..5) rect(0.02f + i * 0.1f, 0.18f, 0.02f + i * 0.1f + 0.015f, 0.62f, shade, 0.005f)
+                rect(0.02f, 0.66f, 0.97f, 0.72f, dark, 0.01f)
+                poly(color, 0.73f to 0.66f, 0.73f to 0.30f, 0.87f to 0.30f, 0.97f to 0.48f, 0.97f to 0.66f)
+                poly(glass, 0.76f to 0.36f, 0.86f to 0.36f, 0.92f to 0.47f, 0.76f to 0.47f)
+                rect(0.94f, 0.56f, 0.985f, 0.62f, Color(0xFFFFC107), 0.01f)
+                wheel(0.10f, 0.09f); wheel(0.22f, 0.09f); wheel(0.34f, 0.09f); wheel(0.80f, 0.09f); wheel(0.91f, 0.09f)
             }
         }
     }

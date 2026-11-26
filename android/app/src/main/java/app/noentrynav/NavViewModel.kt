@@ -294,6 +294,18 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     }
 
     /** "Use my current location" while placing a point of a report. */
+    /** Start/end point typed or pasted as coordinates, a Google Maps link, or a Google Plus Code. */
+    fun setReportPointFromText(text: String) {
+        val st = _s.value
+        val p = CoordParse.parse(text, st.me ?: st.reportA ?: st.origin)
+        if (p == null) {
+            _s.update { it.copy(message = "GPS: could not read that. Use latitude, longitude (28.6139, 77.2090), a Google Maps link or a Plus Code, inside Delhi NCR.") }
+            return
+        }
+        mapController.flyTo(p)
+        markReportPoint(p)
+    }
+
     fun useGpsForReport() {
         val me = _s.value.me
         if (me == null) { _s.update { it.copy(message = "Waiting for GPS fix… or tap the map instead.") }; return }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
@@ -602,12 +603,37 @@ private fun ReportGuide(s: UiState, vm: NavViewModel) {
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                if (start) "Tap the map where the no-entry road begins, or use your location if you are standing there."
+                if (start) "Tap the map, paste exact coordinates or a Plus Code below, or use your location if you are standing there."
                 else "Now tap where it ends. Both points must be on the same road.",
                 color = C.Muted, fontSize = 14.sp
             )
             s.message?.takeIf { it.contains("GPS") }?.let { Spacer(Modifier.height(8.dp)); StatusChip(it, C.Chip, C.Muted) }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
+            var coord by remember(s.report) { mutableStateOf("") }
+            Row(
+                Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(C.Chip).padding(start = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicTextField(
+                    value = coord, onValueChange = { coord = it }, singleLine = true,
+                    textStyle = TextStyle(fontSize = 15.sp, color = C.Ink),
+                    cursorBrush = SolidColor(C.Primary),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { if (coord.isNotBlank()) vm.setReportPointFromText(coord) }),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { inner ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (coord.isEmpty()) Text("Paste lat, long or Plus Code", color = C.Muted, fontSize = 15.sp)
+                            inner()
+                        }
+                    }
+                )
+                Box(
+                    Modifier.fillMaxHeight().clickable { if (coord.isNotBlank()) vm.setReportPointFromText(coord) }.padding(horizontal = 18.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("Set", color = C.Danger, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+            }
+            Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(16.dp)).background(C.DangerBg)
