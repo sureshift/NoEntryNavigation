@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -185,6 +186,7 @@ fun MainScreen(vm: NavViewModel) {
                 s.pin != null -> PinSheet(s.pin!!, s.report, vm)
                 s.navigating -> {
                     if (s.report == ReportStep.END) ReportNavBar(vm)
+                    NavSpeedRow(s)
                     NavBottom(s, vm)
                 }
                 s.report == ReportStep.START || s.report == ReportStep.END -> ReportGuide(s, vm)
@@ -862,6 +864,45 @@ private fun RouteChips(s: UiState, vm: NavViewModel) {
                     if (r.via.isBlank()) "${"%.1f".format(r.distKm)} km" else "via ${r.via}",
                     color = C.Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
+            }
+        }
+    }
+}
+
+/** Speed-limit sign, your speed, and a warning when a speed camera is on the route ahead. */
+@Composable
+private fun NavSpeedRow(s: UiState) {
+    val showCam = s.camDistM >= 0
+    if (s.limit <= 0 && !showCam) return
+    val over = s.limit > 0 && s.speedKph > s.limit + 2
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 10.dp),
+        verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        if (s.limit > 0) {
+            Surface(shape = CircleShape, color = Color.White, shadowElevation = 8.dp, border = BorderStroke(5.dp, C.Danger)) {
+                Box(Modifier.size(58.dp), contentAlignment = Alignment.Center) {
+                    Text((if (s.limitPosted) "" else "~") + s.limit, color = C.Ink, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                }
+            }
+            Surface(shape = RoundedCornerShape(18.dp), color = if (over) C.Danger else Color.White, shadowElevation = 8.dp) {
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("${s.speedKph}", color = if (over) Color.White else C.Ink, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("km/h", color = if (over) Color.White else C.Muted, fontSize = 11.sp)
+                }
+            }
+        }
+        if (showCam) {
+            Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFF7C3AED), shadowElevation = 8.dp) {
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CameraIcon(Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Speed camera " + (if (s.camDistM < 1000) "${(s.camDistM / 10).toInt() * 10} m" else "ahead") +
+                            if (s.camLimit > 0) " · limit ${s.camLimit}" else "",
+                        color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }

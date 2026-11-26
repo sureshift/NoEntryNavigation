@@ -292,3 +292,17 @@ fun PlaceKindIcon(kind: String, color: Color, dp: Dp = 22.dp) {
         else -> PinIcon(color, dp)
     }
 }
+
+@Composable
+fun CameraIcon(color: Color, dp: Dp = 22.dp) {
+    Canvas(Modifier.size(dp)) {
+        val sw = size.minDimension * 0.09f
+        val st = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        drawRoundRect(color, Offset(size.width * 0.08f, size.height * 0.28f), Size(size.width * 0.84f, size.height * 0.52f), CornerRadius(size.width * 0.1f), style = st)
+        drawPath(Path().apply {
+            moveTo(size.width * 0.34f, size.height * 0.28f); lineTo(size.width * 0.40f, size.height * 0.16f)
+            lineTo(size.width * 0.60f, size.height * 0.16f); lineTo(size.width * 0.66f, size.height * 0.28f)
+        }, color, style = st)
+        drawCircle(color, size.minDimension * 0.15f, Offset(size.width * 0.5f, size.height * 0.54f), style = st)
+    }
+}

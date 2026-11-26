@@ -39,6 +39,10 @@ private fun cellCond(minLat: Double, maxLat: Double, minLon: Double, maxLon: Dou
 class Engine(private val ctx: Context) : SegStore {
     private var db: SQLiteDatabase? = null
     private lateinit var graph: Graph
+    private var posted = ByteArray(0)
+    class Cam(val id: Int, val pos: LatLon, val lim: Int, val kind: String)
+    var cams: List<Cam> = emptyList(); private set
+    var camsJson: String = ""; private set
     private var zones: List<Zone> = emptyList()
     private var base: List<Zone> = emptyList()
     private val reports = ArrayList<Report>()
@@ -170,6 +174,40 @@ class Engine(private val ctx: Context) : SegStore {
             }
         }
         graph = Graph(lat, lon, a, b, len, spd, ow, fl, mh, mw)
+        loadSpeedData(db, ns)
+    }
+
+    /** Posted speed limits per segment and the speed / red-light cameras (both from OpenStreetMap, offline). */
+    private fun loadSpeedData(db: SQLiteDatabase, ns: Int) {
+        try {
+            val pz = ByteArray(ns)
+            db.rawQuery("SELECT posted FROM seg ORDER BY id", null).use { c ->
+                var i = 0
+                while (c.moveToNext() && i < ns) { pz[i] = c.getInt(0).coerceIn(0, 127).toByte(); i++ }
+            }
+            posted = pz
+            val list = ArrayList<Cam>()
+            db.rawQuery("SELECT id, lat, lon, lim, kind FROM cam", null).use { c ->
+                while (c.moveToNext()) list.add(Cam(c.getInt(0), LatLon(c.getDouble(1), c.getDouble(2)), c.getInt(3), c.getString(4) ?: "speed"))
+            }
+            cams = list
+            val sb = StringBuilder("{\"type\":\"FeatureCollection\",\"features\":[")
+            list.forEachIndexed { i, cm ->
+                if (i > 0) sb.append(',')
+                sb.append("{\"type\":\"Feature\",\"properties\":{\"k\":\"${cm.kind}\"},\"geometry\":{\"type\":\"Point\",\"coordinates\":[${cm.pos.lon},${cm.pos.lat}]}}")
+            }
+            camsJson = sb.append("]}").toString()
+        } catch (e: Exception) {
+            posted = ByteArray(0); cams = emptyList(); camsJson = ""
+        }
+    }
+
+    /** Speed limit of the road at [p]: (km/h, true when posted in OpenStreetMap, false when estimated from road class). */
+    suspend fun limitAt(p: LatLon, prof: Profile): Pair<Int, Boolean>? = withContext(Dispatchers.IO) {
+        val sn = snap(p, prof) ?: return@withContext null
+        if (sn.distM > 40.0) return@withContext null
+        val pz = if (sn.seg < posted.size) posted[sn.seg].toInt() else 0
+        if (pz > 0) Pair(pz, true) else Pair(graph.segSpeed[sn.seg].coerceAtLeast(10), false)
     }
 
     // ---- gazette rules ----

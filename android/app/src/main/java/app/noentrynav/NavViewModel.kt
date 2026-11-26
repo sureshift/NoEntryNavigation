@@ -53,7 +53,8 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                     it.copy(
                         ready = true, loadError = null,
                         message = if (warn.isEmpty()) null else "${warn.size} gazette rule${if (warn.size > 1) "s are" else " is"} not applied - see Rules",
-                        notices = engine.notices, allZones = engine.allZones
+                        notices = engine.notices, allZones = engine.allZones,
+                        cams = engine.camsJson.ifEmpty { null }
                     )
                 }
                 refreshZones()
@@ -186,7 +187,8 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         _s.update {
             it.copy(
                 me = p,
-                bearing = if (loc.hasBearing() && loc.speed > 1f) loc.bearing else it.bearing
+                bearing = if (loc.hasBearing() && loc.speed > 1f) loc.bearing else it.bearing,
+                speedKph = if (loc.hasSpeed()) (loc.speed * 3.6f).toInt() else it.speedKph
             )
         }
         if (_s.value.navigating) updateProgress(p)
@@ -502,6 +504,44 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         _s.update { it.copy(navigating = false) }
     }
 
+    // ---------- Speed limit and camera warnings ----------
+    private var limitBusy = false
+    private var lastLimitAt = 0L
+    private val camAnnounced = HashSet<Int>()
+
+    private fun updateSpeedInfo(p: LatLon, r: Route, bi: Int, along: Double) {
+        val now = SystemClock.elapsedRealtime()
+        if (!limitBusy && now - lastLimitAt > 2500) {
+            limitBusy = true; lastLimitAt = now
+            viewModelScope.launch {
+                try {
+                    val res = engine.limitAt(p, app.noentrynav.Profile(false, 0.0, 0.0, 1.0))
+                    _s.update { it.copy(limit = res?.first ?: 0, limitPosted = res?.second ?: false) }
+                } catch (_: Exception) {
+                } finally { limitBusy = false }
+            }
+        }
+        // nearest camera lying on the route within the next 600 m
+        var bestD = -1.0; var bestLim = 0; var bestId = -1
+        val pts = r.points
+        for (cm in engine.cams) {
+            if (Math.abs(cm.pos.lat - p.lat) > 0.0065 || Math.abs(cm.pos.lon - p.lon) > 0.0075) continue
+            var idx = -1; var dd = 35.0
+            val end = minOf(pts.size - 2, bi + 60)
+            for (i in bi..end) {
+                if (r.cum[i] - along > 650.0) break
+                val (d, _) = Geo.toSegment(cm.pos, pts[i], pts[i + 1])
+                if (d < dd) { dd = d; idx = i }
+            }
+            if (idx < 0) continue
+            val ahead = r.cum[idx] + Geo.dist(pts[idx], cm.pos) - along
+            if (ahead < -10.0 || ahead > 600.0) continue
+            if (bestD < 0 || ahead < bestD) { bestD = ahead.coerceAtLeast(0.0); bestLim = cm.lim; bestId = cm.id }
+        }
+        _s.update { it.copy(camDistM = bestD, camLimit = bestLim) }
+        if (bestId >= 0 && bestD <= 350.0 && camAnnounced.add(bestId)) speak("Speed camera ahead")
+    }
+
     // ---------- Navigation core ----------
     private fun updateProgress(p: LatLon) {
         val r = _s.value.route ?: return
@@ -530,6 +570,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
         val along = r.cum[bi] + bt * (r.cum[bi + 1] - r.cum[bi])
         val remaining = r.cum.last() - along
+        updateSpeedInfo(p, r, bi, along)
         if (remaining < 25.0) { finish(); return }
         if (r.maneuvers.isEmpty()) {
             _s.update { it.copy(remainingM = remaining) }

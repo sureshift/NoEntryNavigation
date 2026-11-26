@@ -52,6 +52,7 @@ class MapController {
     private var shownRoute: Route? = null
     private var shownRoutes: List<Route>? = null
     private var shownRoads: Roads? = null
+    private var shownCams: String? = null
     private var shownLines: String? = ""
     private var fitted: Route? = null
     private var centered = false
@@ -124,6 +125,17 @@ class MapController {
                     circleStrokeColor("#2563EB"), circleStrokeWidth(4f)
                 )
             )
+            st.addSource(GeoJsonSource("cams", EMPTY_FC))
+            for ((kind, color) in listOf("speed" to "#7C3AED", "redlight" to "#EA580C")) {
+                val layer = CircleLayer("cams-$kind", "cams").withProperties(
+                    circleColor(color), circleRadius(6f), circleStrokeColor("#FFFFFF"), circleStrokeWidth(2f)
+                )
+                layer.setFilter(org.maplibre.android.style.expressions.Expression.eq(
+                    org.maplibre.android.style.expressions.Expression.get("k"),
+                    org.maplibre.android.style.expressions.Expression.literal(kind)))
+                layer.setMinZoom(12.5f)
+                st.addLayer(layer)
+            }
             st.addSource(GeoJsonSource("rep", EMPTY_FC))
             st.addLayer(
                 CircleLayer("rep-dot", "rep").withProperties(
@@ -205,6 +217,10 @@ class MapController {
         if (s.zoneLines != shownLines) {
             st.getSourceAs<GeoJsonSource>("zone-roads")?.setGeoJson(s.zoneLines ?: EMPTY_FC)
             shownLines = s.zoneLines
+        }
+        if (s.cams != shownCams) {
+            st.getSourceAs<GeoJsonSource>("cams")?.setGeoJson(s.cams ?: EMPTY_FC)
+            shownCams = s.cams
         }
         st.getSourceAs<GeoJsonSource>("rep")?.setGeoJson(multiPointJson(listOfNotNull(s.reportA, s.reportB)))
         st.getSourceAs<GeoJsonSource>("origin")?.setGeoJson(pointJson(s.origin))

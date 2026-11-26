@@ -149,7 +149,13 @@ data class UiState(
     val remainingM: Double = 0.0,
     val results: List<Place> = emptyList(),
     val ready: Boolean = false,
-    val roads: Roads? = null
+    val roads: Roads? = null,
+    val cams: String? = null,        // GeoJSON of speed / red-light cameras
+    val limit: Int = 0,              // speed limit on the current road, km/h (0 = unknown)
+    val limitPosted: Boolean = false,// true when taken from a posted maxspeed, false when estimated from road class
+    val speedKph: Int = 0,
+    val camDistM: Double = -1.0,     // distance to the next camera on the route, -1 = none close
+    val camLimit: Int = 0
 )
 
 /** GeoJSON MultiLineString features for the offline road layers (major, main, local). */

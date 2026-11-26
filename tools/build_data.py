@@ -109,6 +109,20 @@ def speed(t, default):
     return default
 
 
+def posted_speed(t):
+    """Speed limit actually posted in OSM (km/h), or 0 when the road has no maxspeed tag."""
+    s = t.get('maxspeed')
+    if s:
+        m = re.match(r'\s*(\d+)', s)
+        if m:
+            v = int(m.group(1))
+            if 'mph' in s:
+                v = int(v * 1.6)
+            if 5 <= v <= 120:
+                return v
+    return 0
+
+
 class Count(osmium.SimpleHandler):
     """Pass 1: count how many drivable ways use each node, so we know where the intersections are."""
     def __init__(self):
@@ -133,7 +147,7 @@ class Build(osmium.SimpleHandler):
         super().__init__()
         self.cnt = cnt
         self.nid, self.nodes = {}, []
-        self.segs, self.cells, self.places = [], [], []
+        self.segs, self.cells, self.places, self.cams = [], [], [], []
         self.seen = set()
 
     def node_id(self, p):
@@ -205,6 +219,11 @@ class Build(osmium.SimpleHandler):
 
     def node(self, n):
         if n.tags and n.location.valid():
+            t = n.tags
+            if t.get('highway') == 'speed_camera' or t.get('enforcement') in ('maxspeed', 'average_speed'):
+                self.cams.append((n.location.lat, n.location.lon, posted_speed(t), 'speed'))
+            elif t.get('highway') == 'traffic_signals' and t.get('enforcement') == 'traffic_signals' or t.get('enforcement') == 'red_light':
+                self.cams.append((n.location.lat, n.location.lon, 0, 'redlight'))
             self.poi(n.tags, n.location.lat, n.location.lon)
 
     def area(self, a):
@@ -241,6 +260,7 @@ class Build(osmium.SimpleHandler):
             return
         cls, dspeed = HW[hw]
         kph = speed(t, dspeed)
+        posted = posted_speed(t)
         ow = oneway(t, hw)
         flags = 1 if (t.get('hgv') == 'no' or t.get('goods') == 'no') else 0
         maxh, maxw = num(t.get('maxheight')), num(t.get('maxweight'))
@@ -252,17 +272,17 @@ class Build(osmium.SimpleHandler):
         start = 0
         for i in range(1, len(pts)):
             if self.cnt.get(pts[i][0], 0) >= 2 or i == len(pts) - 1:
-                self.emit(pts[start:i + 1], name, cls, kph, ow, flags, maxh, maxw)
+                self.emit(pts[start:i + 1], name, cls, kph, ow, flags, maxh, maxw, posted)
                 start = i
 
-    def emit(self, pts, name, cls, kph, ow, flags, maxh, maxw):
+    def emit(self, pts, name, cls, kph, ow, flags, maxh, maxw, posted=0):
         a, b = self.node_id(pts[0]), self.node_id(pts[-1])
         if a == b and len(pts) < 3:
             return
         length = sum(hav(pts[i][1], pts[i][2], pts[i + 1][1], pts[i + 1][2]) for i in range(len(pts) - 1))
         ll = [(p[1], p[2]) for p in pts]
         sid = len(self.segs)
-        self.segs.append((sid, a, b, int(round(length)), kph, ow, cls, flags, maxh, maxw, name, encode(ll)))
+        self.segs.append((sid, a, b, int(round(length)), kph, ow, cls, flags, maxh, maxw, name, encode(ll), posted))
         lats = [p[0] for p in ll]
         lons = [p[1] for p in ll]
         for cell in cells_for(min(lats), max(lats), min(lons), max(lons)):
@@ -272,7 +292,8 @@ class Build(osmium.SimpleHandler):
 SCHEMA = """
 CREATE TABLE node(id INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL);
 CREATE TABLE seg(id INTEGER PRIMARY KEY, a INTEGER, b INTEGER, len INTEGER, speed INTEGER, oneway INTEGER,
-                 cls INTEGER, flags INTEGER, maxh REAL, maxw REAL, name TEXT, geom TEXT);
+                 cls INTEGER, flags INTEGER, maxh REAL, maxw REAL, name TEXT, geom TEXT, posted INTEGER DEFAULT 0);
+CREATE TABLE cam(id INTEGER PRIMARY KEY, lat REAL, lon REAL, lim INTEGER, kind TEXT);
 -- plain grid index (Android's SQLite may not ship the R-Tree module)
 CREATE TABLE seg_cell(cell INTEGER NOT NULL, seg INTEGER NOT NULL, PRIMARY KEY(cell, seg)) WITHOUT ROWID;
 CREATE TABLE place(id INTEGER PRIMARY KEY, name TEXT, lname TEXT, kind TEXT, lat REAL, lon REAL, addr TEXT, laddr TEXT, phone TEXT, gk TEXT);
@@ -324,7 +345,9 @@ def main():
     con.execute('PRAGMA synchronous=OFF')
     con.executescript(SCHEMA)
     con.executemany('INSERT INTO node VALUES (?,?,?)', ((i, la, lo) for i, (la, lo) in enumerate(b.nodes)))
-    con.executemany('INSERT INTO seg VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', b.segs)
+    con.executemany('INSERT INTO seg VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', b.segs)
+    con.executemany('INSERT INTO cam(lat,lon,lim,kind) VALUES (?,?,?,?)', b.cams)
+    print(f'  {len(b.cams)} speed/red-light cameras, {sum(1 for x in b.segs if x[-1])} segments with a posted limit', flush=True)
     con.executemany('INSERT OR IGNORE INTO seg_cell VALUES (?,?)', b.cells)
     con.executemany('INSERT INTO place(name,lname,kind,lat,lon,addr,laddr,phone,gk) VALUES (?,?,?,?,?,?,?,?,?)', b.places)
     con.execute('CREATE INDEX place_l ON place(lname)')
