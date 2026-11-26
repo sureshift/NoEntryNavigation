@@ -28,8 +28,13 @@ jobs:
           key: delhi-extract-v1
       - name: Fetch Delhi OSM extract (tries several mirrors)
         run: bash tools/fetch_osm.sh
+      - name: Fetch Overture Maps places (extra businesses; optional)
+        continue-on-error: true
+        run: |
+          pip install duckdb
+          python tools/fetch_overture.py data/overture_places.csv
       - name: Build offline database
-        run: python tools/build_data.py data/delhi.osm.pbf android/app/src/main/assets/delhi.db
+        run: python tools/build_data.py data/delhi.osm.pbf android/app/src/main/assets/delhi.db data/overture_places.csv
 
       - name: Check gazette rules against the map
         run: python tools/check_rules.py android/app/src/main/assets/rules.json android/app/src/main/assets/delhi.db

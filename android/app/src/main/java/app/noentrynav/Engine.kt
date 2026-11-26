@@ -572,6 +572,32 @@ class Engine(private val ctx: Context) : SegStore {
 
     /** Optional online lookup in OpenStreetMap's own search service (Nominatim), limited to Delhi NCR. Only runs when the driver asks. */
     suspend fun searchOnline(q: String): List<Place> = withContext(Dispatchers.IO) {
+        try { val r = photon(q); if (r.isNotEmpty()) return@withContext r } catch (_: Exception) { }
+        nominatim(q)
+    }
+
+    /** Photon (open source, OpenStreetMap data): forgiving of spelling mistakes and partial names. */
+    private fun photon(q: String): List<Place> {
+        val enc = java.net.URLEncoder.encode(q.trim(), "UTF-8")
+        val url = "https://photon.komoot.io/api/?limit=15&lat=28.6139&lon=77.2090&bbox=76.7,28.2,77.7,29.0&q=$enc"
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.connectTimeout = 8000; conn.readTimeout = 12000
+        conn.setRequestProperty("User-Agent", "NoEntryNav/1.0 (sureshift.in)")
+        if (conn.responseCode != 200) throw IllegalStateException("Photon answered ${conn.responseCode}")
+        val feats = JSONObject(conn.inputStream.use { String(it.readBytes(), Charsets.UTF_8) }).getJSONArray("features")
+        val out = ArrayList<Place>()
+        for (i in 0 until feats.length()) {
+            val f = feats.getJSONObject(i); val pr = f.getJSONObject("properties")
+            val c = f.getJSONObject("geometry").getJSONArray("coordinates")
+            val name = pr.optString("name").ifBlank { pr.optString("street") }
+            if (name.isBlank()) continue
+            val addr = listOf("street", "district", "city").map { pr.optString(it) }.filter { it.isNotBlank() && it != name }.joinToString(", ")
+            out.add(Place(name, LatLon(c.getDouble(1), c.getDouble(0)), pr.optString("osm_value"), addr, ""))
+        }
+        return out
+    }
+
+    private fun nominatim(q: String): List<Place> {
         val enc = java.net.URLEncoder.encode(q.trim(), "UTF-8")
         val url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=15&countrycodes=in&bounded=1" +
             "&viewbox=76.7,29.0,77.7,28.2&addressdetails=0&q=$enc"
@@ -588,7 +614,7 @@ class Engine(private val ctx: Context) : SegStore {
             val addr = full.substringAfter(",", "").trim().split(",").take(3).joinToString(",").trim()
             out.add(Place(name, LatLon(o.getDouble("lat"), o.getDouble("lon")), o.optString("type"), addr, ""))
         }
-        out
+        return out
     }
 
     // ---- offline road drawing ----

@@ -280,6 +280,28 @@ CREATE TABLE meta(k TEXT PRIMARY KEY, v TEXT);
 """
 
 
+def add_overture(b, path):
+    """Merge Overture Maps businesses/places; skip ones OpenStreetMap already has (same name within ~120 m)."""
+    import csv
+    have = {}
+    for _n, ln, _k, la, lo, *_ in b.places:
+        have.setdefault(ln, []).append((la, lo))
+    added = 0
+    with open(path, newline='', encoding='utf-8') as f:
+        for name, cat, la, lo, addr, phone in csv.reader(f):
+            name = name.strip()
+            if len(name) < 2:
+                continue
+            la, lo = float(la), float(lo)
+            ln = name.lower().replace("'", '')
+            if any(abs(la - a) < 0.0011 and abs(lo - o) < 0.0011 for a, o in have.get(ln, ())):
+                continue
+            have.setdefault(ln, []).append((la, lo))
+            k = 'office' if 'office' in cat or 'service' in cat else 'shop'
+            b.add_place(name, ln, k, la, lo, addr, phone)
+            added += 1
+    print(f'  merged {added} Overture places', flush=True)
+
 def main():
     src, out = sys.argv[1], sys.argv[2]
     t0 = time.time()
@@ -292,6 +314,8 @@ def main():
     del c
     b.apply_file(src, locations=True)
     print(f'  {len(b.nodes)} intersections, {len(b.segs)} segments, {len(b.places)} places ({time.time() - t0:.0f}s)', flush=True)
+    if len(sys.argv) > 3 and os.path.exists(sys.argv[3]):
+        add_overture(b, sys.argv[3])
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     if os.path.exists(out):
         os.remove(out)
