@@ -233,8 +233,6 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
             }
         }
     }
-        }
-    }
 
     fun edit(f: Field?) {
         if (_s.value.navigating) return
