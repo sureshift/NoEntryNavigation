@@ -273,7 +273,6 @@ private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
                         }
                     }
                     s.results.forEachIndexed { i, p ->
-                        val parts = p.name.split(" · ")
                         if (i > 0 || s.editing == Field.FROM) Box(Modifier.fillMaxWidth().height(1.dp).background(C.Line))
                         Row(
                             Modifier.fillMaxWidth()
@@ -281,11 +280,15 @@ private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
                                 .padding(horizontal = 18.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            PinIcon(C.Muted, 22.dp)
+                            PlaceKindIcon(p.kind, C.Muted, 22.dp)
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(parts[0], color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                if (parts.size > 1) Text(parts[1], color = C.Muted, fontSize = 13.sp, maxLines = 1)
+                                Text(p.name, color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    kindLabel(p.kind) + if (p.addr.isNotBlank()) " · ${p.addr}" else "",
+                                    color = C.Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                                )
+                                if (p.phone.isNotBlank()) Text(p.phone, color = C.Muted, fontSize = 12.sp, maxLines = 1)
                             }
                         }
                     }

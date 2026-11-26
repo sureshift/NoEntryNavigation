@@ -227,3 +227,33 @@ fun RefreshIcon(color: Color, dp: Dp = 18.dp) {
         drawPath(Path().apply { moveTo(w * 0.62f, w * 0.1f); lineTo(w * 0.8f, w * 0.26f); lineTo(w * 0.56f, w * 0.34f) }, color, style = st(w))
     }
 }
+
+@Composable
+fun BuildingIcon(color: Color, dp: Dp = 20.dp) {
+    Canvas(Modifier.size(dp)) {
+        val w = size.minDimension
+        drawRoundRect(color, Offset(w * 0.2f, w * 0.12f), Size(w * 0.6f, w * 0.76f), CornerRadius(w * 0.05f), style = st(w))
+        for (r in listOf(0.28f, 0.46f)) for (c in listOf(0.34f, 0.58f)) drawRect(color, Offset(w * c, w * r), Size(w * 0.08f, w * 0.08f))
+        drawRect(color, Offset(w * 0.44f, w * 0.68f), Size(w * 0.12f, w * 0.2f))
+    }
+}
+
+fun kindLabel(kind: String): String = when (kind) {
+    "street" -> "Road / street"
+    "" -> "Place"
+    else -> kind.replace('_', ' ').replaceFirstChar { it.uppercase() }
+}
+
+private val LOCALITY = setOf("suburb", "neighbourhood", "village", "town", "city", "locality", "quarter", "hamlet", "city_block")
+private val PREMISES = setOf("building", "warehouse", "industrial", "commercial", "retail", "works", "office", "yes", "mall", "supermarket",
+    "factory", "residential", "storage_tank", "marketplace", "department_store", "convenience", "hardware", "car_repair", "fuel")
+
+@Composable
+fun PlaceKindIcon(kind: String, color: Color, dp: Dp = 22.dp) {
+    when {
+        kind == "street" -> RoadIcon(color, dp)
+        kind in LOCALITY -> AreaIcon(color, dp)
+        kind in PREMISES -> BuildingIcon(color, dp)
+        else -> PinIcon(color, dp)
+    }
+}

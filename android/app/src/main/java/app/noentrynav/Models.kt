@@ -66,7 +66,7 @@ data class Notice(
     val url: String
 )
 
-data class Place(val name: String, val pos: LatLon)
+data class Place(val name: String, val pos: LatLon, val kind: String = "", val addr: String = "", val phone: String = "")
 data class Vehicle(
     val key: String,
     val label: String,

@@ -14,10 +14,14 @@ HW = {
     'tertiary': (2, 30), 'tertiary_link': (2, 25), 'unclassified': (2, 25), 'residential': (2, 20),
     'living_street': (2, 10), 'service': (3, 15),
 }
-POI_KEYS = ('amenity', 'shop', 'tourism', 'historic', 'leisure', 'office', 'place', 'building',
-            'railway', 'aeroway', 'public_transport')
+# everything that has a name and one of these keys becomes searchable (places, businesses, institutions, buildings)
+POI_KEYS = ('amenity', 'shop', 'office', 'craft', 'healthcare', 'tourism', 'historic', 'leisure', 'place',
+            'industrial', 'man_made', 'landuse', 'building', 'railway', 'aeroway', 'public_transport')
 POI_SKIP = {'bench', 'waste_basket', 'bicycle_parking', 'parking_space', 'parking_entrance', 'post_box',
-            'vending_machine', 'shelter', 'drinking_water', 'recycling', 'yes', 'no'}
+            'vending_machine', 'shelter', 'drinking_water', 'recycling', 'no'}
+LANDUSE_OK = {'industrial', 'commercial', 'retail', 'residential', 'education', 'institutional', 'railway'}
+MANMADE_OK = {'works', 'storage_tank', 'wastewater_plant', 'water_works', 'petroleum_well'}
+NAME_TAGS = ('name:en', 'name', 'name:hi', 'alt_name', 'old_name', 'short_name', 'brand', 'operator')
 
 
 CELL = 0.005   # grid cell size in degrees (~550 m). Must match Engine.kt
@@ -140,33 +144,87 @@ class Build(osmium.SimpleHandler):
             self.nodes.append((p[1], p[2]))
         return i
 
-    def add_place(self, name, lname, kind, lat, lon):
+    def add_place(self, name, lname, kind, lat, lon, addr='', phone='', grouped=False):
         key = (lname, round(lat, 3), round(lon, 3))
         if key in self.seen:
             return
         self.seen.add(key)
-        self.places.append((name, lname, kind, lat, lon))
+        # streets are grouped by name when searching (a long road is many OSM ways); other places stay separate
+        gk = ('s|' + lname) if grouped else ('p%d' % len(self.places))
+        self.places.append((name[:120], lname[:240], kind, lat, lon, addr[:160], addr.lower()[:160], phone[:40], gk))
+
+    @staticmethod
+    def names_text(t, extra=()):
+        seen, out = set(), []
+        for k in NAME_TAGS + tuple(extra):
+            v = t.get(k)
+            if v:
+                for part in re.split(r'[;/]', v):
+                    part = part.strip().lower()
+                    if part and part not in seen:
+                        seen.add(part)
+                        out.append(part)
+        return ' '.join(out)
+
+    @staticmethod
+    def address(t):
+        if t.get('addr:full'):
+            return t['addr:full']
+        parts = []
+        hn = ' '.join(x for x in (t.get('addr:housename'), t.get('addr:housenumber')) if x)
+        if hn:
+            parts.append(hn)
+        for k in ('addr:street', 'addr:place', 'addr:suburb', 'addr:neighbourhood', 'addr:subdistrict', 'addr:city', 'addr:postcode'):
+            v = t.get(k)
+            if v and v not in parts:
+                parts.append(v)
+        return ', '.join(parts)
 
     def poi(self, t, lat, lon):
         name = t.get('name:en') or t.get('name')
-        if not name:
+        if not name or t.get('highway') and t.get('highway') not in ('bus_stop',):
             return
         for k in POI_KEYS:
             v = t.get(k)
-            if v and v not in POI_SKIP:
-                if k == 'railway' and v not in ('station', 'halt', 'tram_stop'):
-                    continue
-                if k == 'aeroway' and v not in ('terminal', 'aerodrome'):
-                    continue
-                if k == 'public_transport' and v != 'station':
-                    continue
-                lname = ((t.get('name:en') or '') + ' ' + (t.get('name') or '')).strip().lower()
-                self.add_place(name, lname, v, lat, lon)
-                return
+            if not v or v in POI_SKIP:
+                continue
+            if k == 'railway' and v not in ('station', 'halt', 'tram_stop'):
+                continue
+            if k == 'aeroway' and v not in ('terminal', 'aerodrome'):
+                continue
+            if k == 'public_transport' and v != 'station':
+                continue
+            if k == 'landuse' and v not in LANDUSE_OK:
+                continue
+            if k == 'man_made' and v not in MANMADE_OK:
+                continue
+            kind = 'building' if (k == 'building' and v == 'yes') else v
+            lname = self.names_text(t)
+            self.add_place(name, lname, kind, lat, lon, self.address(t), t.get('phone') or t.get('contact:phone') or '')
+            return
 
     def node(self, n):
         if n.tags and n.location.valid():
             self.poi(n.tags, n.location.lat, n.location.lon)
+
+    def area(self, a):
+        """Named buildings, campuses, markets, colonies... (closed ways and multipolygon relations), placed at their centre."""
+        t = a.tags
+        if not t.get('name') and not t.get('name:en'):
+            return
+        try:
+            best = None
+            for ring in a.outer_rings():
+                pts = [(n.lat, n.lon) for n in ring]
+                if best is None or len(pts) > len(best):
+                    best = pts
+            if not best:
+                return
+            lat = sum(p[0] for p in best) / len(best)
+            lon = sum(p[1] for p in best) / len(best)
+            self.poi(t, lat, lon)
+        except Exception:
+            return
 
     def way(self, w):
         t = w.tags
@@ -178,9 +236,7 @@ class Build(osmium.SimpleHandler):
         if len(pts) < 2:
             return
         if hw is None:
-            if t.get('name') and not t.get('barrier'):
-                self.poi(t, pts[0][1], pts[0][2])
-            return
+            return          # named areas are handled in area()
         if not drivable(t):
             return
         cls, dspeed = HW[hw]
@@ -189,10 +245,10 @@ class Build(osmium.SimpleHandler):
         flags = 1 if (t.get('hgv') == 'no' or t.get('goods') == 'no') else 0
         maxh, maxw = num(t.get('maxheight')), num(t.get('maxweight'))
         name = t.get('name:en') or t.get('name') or t.get('ref') or ''
-        if name and cls <= 2:
+        if name:
             mid = pts[len(pts) // 2]
-            lname = ((t.get('name:en') or '') + ' ' + (t.get('name') or t.get('ref') or '')).strip().lower()
-            self.add_place(name, lname, 'street', mid[1], mid[2])
+            lname = self.names_text(t, extra=('ref',))
+            self.add_place(name, lname, 'street', mid[1], mid[2], '', '', grouped=True)
         start = 0
         for i in range(1, len(pts)):
             if self.cnt.get(pts[i][0], 0) >= 2 or i == len(pts) - 1:
@@ -219,7 +275,7 @@ CREATE TABLE seg(id INTEGER PRIMARY KEY, a INTEGER, b INTEGER, len INTEGER, spee
                  cls INTEGER, flags INTEGER, maxh REAL, maxw REAL, name TEXT, geom TEXT);
 -- plain grid index (Android's SQLite may not ship the R-Tree module)
 CREATE TABLE seg_cell(cell INTEGER NOT NULL, seg INTEGER NOT NULL, PRIMARY KEY(cell, seg)) WITHOUT ROWID;
-CREATE TABLE place(id INTEGER PRIMARY KEY, name TEXT, lname TEXT, kind TEXT, lat REAL, lon REAL);
+CREATE TABLE place(id INTEGER PRIMARY KEY, name TEXT, lname TEXT, kind TEXT, lat REAL, lon REAL, addr TEXT, laddr TEXT, phone TEXT, gk TEXT);
 CREATE TABLE meta(k TEXT PRIMARY KEY, v TEXT);
 """
 
@@ -246,7 +302,7 @@ def main():
     con.executemany('INSERT INTO node VALUES (?,?,?)', ((i, la, lo) for i, (la, lo) in enumerate(b.nodes)))
     con.executemany('INSERT INTO seg VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', b.segs)
     con.executemany('INSERT OR IGNORE INTO seg_cell VALUES (?,?)', b.cells)
-    con.executemany('INSERT INTO place(name,lname,kind,lat,lon) VALUES (?,?,?,?,?)', b.places)
+    con.executemany('INSERT INTO place(name,lname,kind,lat,lon,addr,laddr,phone,gk) VALUES (?,?,?,?,?,?,?,?,?)', b.places)
     con.execute('CREATE INDEX place_l ON place(lname)')
     con.execute("INSERT INTO meta VALUES ('built', ?)", (time.strftime('%Y-%m-%d'),))
     con.commit()

@@ -541,17 +541,29 @@ class Engine(private val ctx: Context) : SegStore {
         added
     }
 
-    // ---- search ----
-    suspend fun search(q: String): List<Place> = withContext(Dispatchers.IO) {
-        val s = q.trim().lowercase(Locale.ROOT).replace("\\", "").replace("%", "").replace("_", "")
-        if (s.isEmpty()) return@withContext emptyList()
+    // ---- search (places, roads, streets, businesses, with addresses) ----
+    suspend fun search(q: String, near: LatLon): List<Place> = withContext(Dispatchers.IO) {
+        val clean = q.trim().lowercase(Locale.ROOT).replace("\\", " ").replace("%", " ").replace("_", " ").replace("'", "")
+        val toks = clean.split(Regex("\\s+")).filter { it.isNotEmpty() }.take(5)
+        if (toks.isEmpty()) return@withContext emptyList()
+        val where = toks.joinToString(" AND ") { "(lname LIKE ? OR laddr LIKE ?)" }
+        val args = ArrayList<String>()
+        toks.forEach { args.add("%$it%"); args.add("%$it%") }
+        val first = toks[0]
+        val whole = clean
+        // best first: exact name, name starts with the text, a word starts with it; then localities, roads, businesses; then nearest
+        val sql = "SELECT name, kind, lat, lon, addr, phone, MIN(ord) AS o FROM (" +
+            "SELECT name, kind, lat, lon, addr, phone, gk, " +
+            "(CASE WHEN lname = ? THEN 0 WHEN lname LIKE ? THEN 1 WHEN lname LIKE ? THEN 2 ELSE 3 END) * 1000 + " +
+            "(CASE WHEN kind IN ('suburb','neighbourhood','village','town','city','locality','quarter','hamlet','city_block') THEN 0 " +
+            "WHEN kind = 'street' THEN 1 ELSE 2 END) * 100 + " +
+            "((lat - ${near.lat}) * (lat - ${near.lat}) + (lon - ${near.lon}) * (lon - ${near.lon})) * 100 AS ord " +
+            "FROM place WHERE $where) GROUP BY gk ORDER BY o LIMIT 12"
         val out = ArrayList<Place>()
-        d().rawQuery(
-            "SELECT name, kind, lat, lon FROM place WHERE lname LIKE ? OR lname LIKE ? " +
-                "ORDER BY (lname LIKE ?) DESC, length(lname) LIMIT 8",
-            arrayOf("$s%", "% $s%", "$s%")
-        ).use { c ->
-            while (c.moveToNext()) out.add(Place("${c.getString(0)} · ${c.getString(1)}", LatLon(c.getDouble(2), c.getDouble(3))))
+        d().rawQuery(sql, arrayOf(whole, "$first%", "% $first%") + args.toTypedArray()).use { c ->
+            while (c.moveToNext()) {
+                out.add(Place(c.getString(0), LatLon(c.getDouble(2), c.getDouble(3)), c.getString(1) ?: "", c.getString(4) ?: "", c.getString(5) ?: ""))
+            }
         }
         out
     }

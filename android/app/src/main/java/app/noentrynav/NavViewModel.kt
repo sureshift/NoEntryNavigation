@@ -204,7 +204,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         viewModelScope.launch {
             _s.update { it.copy(busy = true, message = null) }
             try {
-                val r = engine.search(q.trim())
+                val r = engine.search(q.trim(), _s.value.me ?: _s.value.origin ?: LatLon(28.6139, 77.2090))
                 _s.update {
                     it.copy(busy = false, results = r, message = if (r.isEmpty()) "No places found in Delhi NCR." else null)
                 }
@@ -221,7 +221,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
     /** A search result was tapped: it becomes the start or the destination depending on the field being edited. */
     fun pickPlace(p: Place) {
-        val name = p.name.substringBefore(" · ")
+        val name = p.name
         if (_s.value.editing == Field.FROM) setOrigin(p.pos, name) else setDestination(p.pos, name)
     }
 
