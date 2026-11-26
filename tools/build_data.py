@@ -226,7 +226,21 @@ class Build(osmium.SimpleHandler):
                 self.cams.append((n.location.lat, n.location.lon, posted_speed(t), 'speed'))
             elif t.get('highway') == 'traffic_signals' and t.get('enforcement') == 'traffic_signals' or t.get('enforcement') == 'red_light':
                 self.cams.append((n.location.lat, n.location.lon, 0, 'redlight'))
+            self.chowk(n.tags, n.location.lat, n.location.lon)
             self.poi(n.tags, n.location.lat, n.location.lon)
+
+    def chowk(self, t, lat, lon):
+        """Named junctions (chowks, crossings, circles) so the map and search show them."""
+        name = t.get('name:en') or t.get('name')
+        if not name:
+            return
+        hw = t.get('highway')
+        low = name.lower()
+        if hw in ('traffic_signals', 'mini_roundabout', 'turning_circle', 'crossing', 'stop') or t.get('junction') or \
+           re.search(r'chowk|chauraha|chaurah|crossing|circle|chowkdi|\bmor\b|\bmod\b|\bmore\b|intersection|red light|roundabout|gol chakkar', low):
+            if hw and hw not in ('traffic_signals', 'mini_roundabout', 'turning_circle', 'crossing', 'stop') and not t.get('junction'):
+                return
+            self.add_place(name, self.names_text(t), 'chowk', lat, lon)
 
     def area(self, a):
         """Named buildings, campuses, markets, colonies... (closed ways and multipolygon relations), placed at their centre."""
@@ -381,6 +395,7 @@ def main():
     con.executemany('INSERT OR IGNORE INTO seg_cell VALUES (?,?)', b.cells)
     con.executemany('INSERT INTO place(name,lname,kind,lat,lon,addr,phone,gk) VALUES (?,?,?,?,?,?,?,?)', b.places)
     con.execute("INSERT INTO meta VALUES ('built', ?)", (time.strftime('%Y-%m-%d'),))
+    con.execute('CREATE INDEX place_ll ON place(lat, lon)')
     con.commit()
     con.close()
     print(f'wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB) in {time.time() - t0:.0f}s')

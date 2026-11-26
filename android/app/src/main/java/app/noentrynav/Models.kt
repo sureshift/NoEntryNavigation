@@ -183,4 +183,4 @@ data class UiState(
 )
 
 /** GeoJSON MultiLineString features for the offline road layers (major, main, local). */
-class Roads(val major: String, val main: String, val local: String)
+class Roads(val major: String, val main: String, val local: String, val names: String = "", val places: String = "")

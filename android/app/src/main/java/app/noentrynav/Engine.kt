@@ -628,7 +628,7 @@ class Engine(private val ctx: Context) : SegStore {
             "SELECT name, kind, lat, lon, addr, phone, gk, " +
             "(CASE WHEN lname = ? THEN 0 WHEN lname LIKE ? THEN 1 WHEN ($inName) THEN 2 ELSE 3 END) * 1000 + " +
             "(CASE WHEN kind IN ('suburb','neighbourhood','village','town','city','locality','quarter','hamlet','city_block') THEN 0 " +
-            "WHEN kind = 'street' OR kind IN ('school','college','university','hospital','apartment','apartments','condominium','clinic','residential','place_of_worship','station','attraction','kindergarten','mall','government','marketplace') THEN 1 ELSE 2 END) * 100 + " +
+            "WHEN kind = 'street' OR kind IN ('chowk','school','college','university','hospital','apartment','apartments','condominium','clinic','residential','place_of_worship','station','attraction','kindergarten','mall','government','marketplace') THEN 1 ELSE 2 END) * 100 + " +
             "MIN(99.0, ((lat - ${near.lat}) * (lat - ${near.lat}) + (lon - ${near.lon}) * (lon - ${near.lon})) * 100) AS ord " +
             "FROM place WHERE $where) GROUP BY gk ORDER BY o LIMIT 30"
         val out = ArrayList<Place>()
@@ -696,23 +696,55 @@ class Engine(private val ctx: Context) : SegStore {
                 zoom < 14.5 -> 2
                 else -> 3
             }
-            val sql = "SELECT s.cls, s.geom FROM seg s WHERE s.cls <= $maxCls AND s.id IN " +
+            val nameCls = when { zoom < 12.5 -> -1; zoom < 14.0 -> 0; zoom < 15.0 -> 1; zoom < 16.0 -> 2; else -> 3 }
+            val sql = "SELECT s.cls, s.geom, s.name FROM seg s WHERE s.cls <= $maxCls AND s.id IN " +
                 "(SELECT seg FROM seg_cell WHERE ${cellCond(minLat, maxLat, minLon, maxLon)}) LIMIT 20000"
             val major = StringBuilder(); val main = StringBuilder(); val local = StringBuilder()
+            val names = StringBuilder(); var nameCount = 0
             d().rawQuery(sql, null).use { c ->
                 while (c.moveToNext()) {
-                    val sb = when (c.getInt(0)) { 0 -> major; 1 -> main; else -> local }
+                    val cls = c.getInt(0)
+                    val sb = when (cls) { 0 -> major; 1 -> main; else -> local }
                     if (sb.isNotEmpty()) sb.append(',')
-                    sb.append('[')
+                    val pts = StringBuilder("[")
                     Geo.decodePolyline(c.getString(1), 6).forEachIndexed { i, p ->
-                        if (i > 0) sb.append(',')
-                        sb.append('[').append(p.lon).append(',').append(p.lat).append(']')
+                        if (i > 0) pts.append(',')
+                        pts.append('[').append(p.lon).append(',').append(p.lat).append(']')
                     }
-                    sb.append(']')
+                    pts.append(']')
+                    sb.append(pts)
+                    val nm = if (cls <= nameCls) c.getString(2) else null
+                    if (!nm.isNullOrBlank() && nameCount < 1500) {
+                        if (names.isNotEmpty()) names.append(',')
+                        names.append("""{"type":"Feature","properties":{"name":${JSONObject.quote(nm)}},"geometry":{"type":"LineString","coordinates":""").append(pts).append("}}")
+                        nameCount++
+                    }
                 }
             }
             fun fc(sb: StringBuilder) =
                 """{"type":"Feature","properties":{},"geometry":{"type":"MultiLineString","coordinates":[$sb]}}"""
-            Roads(fc(major), fc(main), fc(local))
+
+            // place labels: localities, chowks, societies, landmarks, then shops as you zoom in
+            val maxTier = when { zoom < 11.5 -> -1; zoom < 13.5 -> 0; zoom < 15.0 -> 1; zoom < 16.5 -> 2; else -> 3 }
+            val pl = StringBuilder()
+            if (maxTier >= 0) {
+                val tierSql = "CASE WHEN kind IN ('suburb','neighbourhood','village','town','city','locality','quarter','hamlet','city_block','colony') THEN 0 " +
+                    "WHEN kind = 'chowk' THEN 1 " +
+                    "WHEN kind IN ('apartments','apartment','condominium','residential','hospital','clinic','school','college','university','place_of_worship','station','halt','attraction','park','government','townhall','police','marketplace','stadium','museum','monument','aerodrome','terminal','mall','library','courthouse') THEN 2 ELSE 3 END"
+                val q = "SELECT name, lat, lon, $tierSql AS t FROM place WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? " +
+                    "AND $tierSql <= $maxTier ORDER BY t LIMIT 700"
+                d().rawQuery(q, arrayOf(minLat.toString(), maxLat.toString(), minLon.toString(), maxLon.toString())).use { c ->
+                    while (c.moveToNext()) {
+                        val nm = c.getString(0) ?: continue
+                        if (pl.isNotEmpty()) pl.append(',')
+                        pl.append("""{"type":"Feature","properties":{"name":${JSONObject.quote(nm)},"k":${c.getInt(3)}},"geometry":{"type":"Point","coordinates":[${c.getDouble(2)},${c.getDouble(1)}]}}""")
+                    }
+                }
+            }
+            Roads(
+                fc(major), fc(main), fc(local),
+                """{"type":"FeatureCollection","features":[$names]}""",
+                """{"type":"FeatureCollection","features":[$pl]}"""
+            )
         }
 }

@@ -20,6 +20,19 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.SymbolLayer
+import org.maplibre.android.style.layers.PropertyFactory.textField
+import org.maplibre.android.style.layers.PropertyFactory.textFont
+import org.maplibre.android.style.layers.PropertyFactory.textSize
+import org.maplibre.android.style.layers.PropertyFactory.textColor
+import org.maplibre.android.style.layers.PropertyFactory.textHaloColor
+import org.maplibre.android.style.layers.PropertyFactory.textHaloWidth
+import org.maplibre.android.style.layers.PropertyFactory.textMaxWidth
+import org.maplibre.android.style.layers.PropertyFactory.textOptional
+import org.maplibre.android.style.layers.PropertyFactory.symbolPlacement
+import org.maplibre.android.style.layers.PropertyFactory.textPadding
+import org.maplibre.android.style.layers.PropertyFactory.textAnchor
+import org.maplibre.android.style.layers.PropertyFactory.textOffset
 import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
@@ -38,7 +51,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
 
 // Fully offline: plain background, roads are drawn from the on-device database.
 private const val STYLE_JSON = """
-{"version":8,"sources":{},
+{"version":8,"sources":{},"glyphs":"asset://glyphs/{fontstack}/{range}.pbf",
  "layers":[{"id":"bg","type":"background","paint":{"background-color":"#F1F3F5"}}]}
 """
 
@@ -102,6 +115,30 @@ class MapController {
             st.addLayer(LineLayer("rf-local", "roads-local").withProperties(lineColor("#FFFFFF"), lineWidth(2.4f), *round))
             st.addLayer(LineLayer("rf-main", "roads-main").withProperties(lineColor("#FFFFFF"), lineWidth(4.5f), *round))
             st.addLayer(LineLayer("rf-major", "roads-major").withProperties(lineColor("#FFD66B"), lineWidth(6f), *round))
+            // labels: road names along the road, then localities, chowks, societies, landmarks and shops by zoom
+            st.addSource(GeoJsonSource("road-names", EMPTY_FC))
+            st.addSource(GeoJsonSource("place-labels", EMPTY_FC))
+            val ex = org.maplibre.android.style.expressions.Expression
+            st.addLayer(
+                SymbolLayer("road-names-l", "road-names").withProperties(
+                    symbolPlacement(Property.SYMBOL_PLACEMENT_LINE), textField(ex.get("name")), textFont(arrayOf("NotoSans-Regular")),
+                    textSize(11f), textColor("#475569"), textHaloColor("#FFFFFF"), textHaloWidth(1.6f), textPadding(6f)
+                )
+            )
+            fun placeLayer(id: String, tier: Int, minZ: Float, size: Float, bold: Boolean, color: String) {
+                val l = SymbolLayer(id, "place-labels").withProperties(
+                    textField(ex.get("name")), textFont(arrayOf(if (bold) "NotoSans-Bold" else "NotoSans-Regular")),
+                    textSize(size), textColor(color), textHaloColor("#FFFFFF"), textHaloWidth(1.8f),
+                    textMaxWidth(7f), textOptional(true), textPadding(4f)
+                )
+                l.setFilter(ex.eq(ex.get("k"), ex.literal(tier)))
+                l.minZoom = minZ
+                st.addLayer(l)
+            }
+            placeLayer("pl-3", 3, 16.5f, 11f, false, "#64748B")
+            placeLayer("pl-2", 2, 15f, 12f, false, "#334155")
+            placeLayer("pl-1", 1, 13.5f, 12.5f, true, "#B45309")
+            placeLayer("pl-0", 0, 11.5f, 13.5f, true, "#1E293B")
             st.addSource(GeoJsonSource("zones", EMPTY_FC))
             st.addLayer(FillLayer("zones-fill", "zones").withProperties(fillColor(org.maplibre.android.style.expressions.Expression.toColor(org.maplibre.android.style.expressions.Expression.get("c"))), fillOpacity(0.2f)))
             st.addLayer(LineLayer("zones-line", "zones").withProperties(lineColor(org.maplibre.android.style.expressions.Expression.toColor(org.maplibre.android.style.expressions.Expression.get("c"))), lineWidth(2f)))
@@ -215,6 +252,8 @@ class MapController {
             st.getSourceAs<GeoJsonSource>("roads-major")?.setGeoJson(s.roads.major)
             st.getSourceAs<GeoJsonSource>("roads-main")?.setGeoJson(s.roads.main)
             st.getSourceAs<GeoJsonSource>("roads-local")?.setGeoJson(s.roads.local)
+            st.getSourceAs<GeoJsonSource>("road-names")?.setGeoJson(s.roads.names.ifEmpty { EMPTY_FC })
+            st.getSourceAs<GeoJsonSource>("place-labels")?.setGeoJson(s.roads.places.ifEmpty { EMPTY_FC })
             shownRoads = s.roads
         }
         if (s.routes !== shownRoutes || s.route !== shownRoute) {
