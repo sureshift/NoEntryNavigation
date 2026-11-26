@@ -276,7 +276,7 @@ fun BuildingIcon(color: Color, dp: Dp = 20.dp) {
 fun kindLabel(kind: String): String = when (kind) {
     "street" -> "Road / street"
     "" -> "Place"
-    "apartments" -> "Society / apartments"
+    "apartments", "apartment", "condominium" -> "Society / apartments"
     "residential" -> "Residential colony"
     "place_of_worship" -> "Place of worship"
     "attraction" -> "Landmark"
@@ -288,7 +288,7 @@ private val LOCALITY = setOf("suburb", "neighbourhood", "village", "town", "city
 private val EDU = setOf("school", "college", "university", "kindergarten", "education")
 private val HEALTH = setOf("hospital", "clinic", "doctors", "dentist", "pharmacy", "healthcare")
 private val WORSHIP = setOf("place_of_worship", "temple", "mosque", "church")
-private val SOCIETY = setOf("apartments", "residential", "dormitory", "house", "hostel")
+private val SOCIETY = setOf("apartment", "apartments", "condominium", "residential", "dormitory", "house", "hostel")
 private val TRANSIT = setOf("station", "halt", "subway", "bus_station", "aerodrome", "terminal", "tram_stop")
 private val LANDMARK = setOf("attraction", "museum", "monument", "memorial", "artwork", "fort", "viewpoint", "park", "stadium", "ruins", "archaeological_site")
 private val PREMISES = setOf("building", "warehouse", "industrial", "commercial", "retail", "works", "office", "yes", "mall", "supermarket",
