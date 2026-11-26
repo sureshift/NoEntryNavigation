@@ -259,10 +259,7 @@ class MapController {
                 .build()
             m.animateCamera(CameraUpdateFactory.newCameraPosition(pos), 700)
         } else if (route != null && route !== fitted) {
-            fitted = route
-            val b = LatLngBounds.Builder()
-            route.points.forEach { b.include(LatLng(it.lat, it.lon)) }
-            m.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 70, padTop + 40, 70, padBottom + 40), 800)
+            fitted = route   // the camera is fitted by refit() once the sheet has settled
         } else if (route == null) {
             fitted = null
             if (!centered && me != null) {

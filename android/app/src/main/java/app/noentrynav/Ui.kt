@@ -131,7 +131,9 @@ fun MainScreen(vm: NavViewModel) {
     // once the sheet has settled (it slides down after a route is found), fit the whole route into the free map area
     LaunchedEffect(s.route, bottomPx / 40, topPx / 40, s.navigating, s.pin == null) {
         if (s.route != null && !s.navigating && s.pin == null && s.screen == Screen.MAP) {
-            kotlinx.coroutines.delay(450)
+            kotlinx.coroutines.delay(500)
+            vm.mapController.refit(s.route)
+            kotlinx.coroutines.delay(900)
             vm.mapController.refit(s.route)
         }
     }
@@ -218,8 +220,26 @@ private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
     }
     val focus = LocalFocusManager.current
     val planning = s.dest != null || s.origin != null || s.editing == Field.FROM
-    Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
-        if (!planning) {
+    Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp).animateContentSize()) {
+        val compact = s.route != null && s.editing == null && s.results.isEmpty() && s.report == ReportStep.NONE
+        if (compact) {
+            Surface(
+                shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 10.dp,
+                modifier = Modifier.clickable { vm.edit(Field.TO) }
+            ) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(10.dp).clip(CircleShape).background(C.Primary))
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        (if (s.origin == null) "Current location" else s.originName.ifBlank { "Start" }) + "  →  " + s.destName.ifBlank { "Dropped pin" },
+                        color = C.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text("Edit", color = C.Primary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        } else if (!planning) {
             Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 10.dp) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
@@ -476,11 +496,53 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                     Spacer(Modifier.width(8.dp))
                     Text("${s.vehicle.label} · change vehicle", color = C.Primary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(6.dp))
             }
 
             val route = s.route
-            if (route != null) {
+            if (route != null && !expanded) {
+                if (s.routes.size > 1 && s.routes.any { it === route }) {
+                    RouteChips(s, vm)
+                    Spacer(Modifier.height(8.dp))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(fmtTime(route.timeSec), color = C.Ink, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(8.dp))
+                            Text("${"%.1f".format(route.distKm)} km", color = C.Muted, fontSize = 15.sp, modifier = Modifier.padding(bottom = 3.dp))
+                        }
+                        Text(
+                            "Arrive ${arrivalAt(route.timeSec)}" + if (route.via.isNotBlank()) " · via ${route.via}" else "",
+                            color = C.Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Box(
+                        Modifier.size(46.dp).clip(CircleShape).background(C.Chip).clickable { vm.clearRoute() },
+                        contentAlignment = Alignment.Center
+                    ) { CloseIcon(C.Ink, 18.dp) }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = { vm.startNav() },
+                        modifier = Modifier.height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = C.Primary)
+                    ) {
+                        NavigateIcon(Color.White, 18.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Start", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                route.warning?.let {
+                    Spacer(Modifier.height(8.dp))
+                    StatusChip(it, C.DangerBg, C.Danger) { vm.showRules(true) }
+                }
+                if (route.warning == null && route.applied.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    val n = route.applied.size
+                    StatusChip("Avoiding $n active no-entry rule${if (n > 1) "s" else ""} for ${s.vehicle.label}", C.OkBg, C.Ok) { vm.showRules(true) }
+                }
+            } else if (route != null) {
                 if (s.routes.size > 1 && s.routes.any { it === route }) {
                     RouteChips(s, vm)
                     Spacer(Modifier.height(12.dp))
