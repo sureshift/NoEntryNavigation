@@ -276,10 +276,21 @@ fun BuildingIcon(color: Color, dp: Dp = 20.dp) {
 fun kindLabel(kind: String): String = when (kind) {
     "street" -> "Road / street"
     "" -> "Place"
+    "apartments" -> "Society / apartments"
+    "residential" -> "Residential colony"
+    "place_of_worship" -> "Place of worship"
+    "attraction" -> "Landmark"
+    "station" -> "Station"
     else -> kind.replace('_', ' ').replaceFirstChar { it.uppercase() }
 }
 
 private val LOCALITY = setOf("suburb", "neighbourhood", "village", "town", "city", "locality", "quarter", "hamlet", "city_block")
+private val EDU = setOf("school", "college", "university", "kindergarten", "education")
+private val HEALTH = setOf("hospital", "clinic", "doctors", "dentist", "pharmacy", "healthcare")
+private val WORSHIP = setOf("place_of_worship", "temple", "mosque", "church")
+private val SOCIETY = setOf("apartments", "residential", "dormitory", "house", "hostel")
+private val TRANSIT = setOf("station", "halt", "subway", "bus_station", "aerodrome", "terminal", "tram_stop")
+private val LANDMARK = setOf("attraction", "museum", "monument", "memorial", "artwork", "fort", "viewpoint", "park", "stadium", "ruins", "archaeological_site")
 private val PREMISES = setOf("building", "warehouse", "industrial", "commercial", "retail", "works", "office", "yes", "mall", "supermarket",
     "factory", "residential", "storage_tank", "marketplace", "department_store", "convenience", "hardware", "car_repair", "fuel")
 
@@ -288,6 +299,12 @@ fun PlaceKindIcon(kind: String, color: Color, dp: Dp = 22.dp) {
     when {
         kind == "street" -> RoadIcon(color, dp)
         kind in LOCALITY -> AreaIcon(color, dp)
+        kind in EDU -> KindGlyph(0, color, dp)
+        kind in HEALTH -> KindGlyph(1, color, dp)
+        kind in WORSHIP -> KindGlyph(2, color, dp)
+        kind in SOCIETY -> KindGlyph(3, color, dp)
+        kind in TRANSIT -> KindGlyph(4, color, dp)
+        kind in LANDMARK -> KindGlyph(5, color, dp)
         kind in PREMISES -> BuildingIcon(color, dp)
         else -> PinIcon(color, dp)
     }
@@ -304,5 +321,53 @@ fun CameraIcon(color: Color, dp: Dp = 22.dp) {
             lineTo(size.width * 0.60f, size.height * 0.16f); lineTo(size.width * 0.66f, size.height * 0.28f)
         }, color, style = st)
         drawCircle(color, size.minDimension * 0.15f, Offset(size.width * 0.5f, size.height * 0.54f), style = st)
+    }
+}
+
+/** Small line glyphs for important place types: 0 school/college, 1 hospital, 2 worship, 3 society, 4 transit, 5 landmark. */
+@Composable
+fun KindGlyph(type: Int, color: Color, dp: Dp = 22.dp) {
+    Canvas(Modifier.size(dp)) {
+        val w = size.width; val h = size.height
+        val st = Stroke(width = w * 0.09f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        fun pt(x: Float, y: Float) = Offset(w * x, h * y)
+        when (type) {
+            0 -> {   // graduation cap
+                drawPath(Path().apply { moveTo(w * 0.5f, h * 0.2f); lineTo(w * 0.94f, h * 0.42f); lineTo(w * 0.5f, h * 0.64f); lineTo(w * 0.06f, h * 0.42f); close() }, color, style = st)
+                drawPath(Path().apply { moveTo(w * 0.24f, h * 0.55f); lineTo(w * 0.24f, h * 0.76f); quadraticBezierTo(w * 0.5f, h * 0.9f, w * 0.76f, h * 0.76f); lineTo(w * 0.76f, h * 0.55f) }, color, style = st)
+            }
+            1 -> {   // cross in rounded square
+                drawRoundRect(color, pt(0.12f, 0.12f), Size(w * 0.76f, h * 0.76f), CornerRadius(w * 0.16f), style = st)
+                drawLine(color, pt(0.5f, 0.3f), pt(0.5f, 0.7f), strokeWidth = w * 0.11f, cap = StrokeCap.Round)
+                drawLine(color, pt(0.3f, 0.5f), pt(0.7f, 0.5f), strokeWidth = w * 0.11f, cap = StrokeCap.Round)
+            }
+            2 -> {   // dome with spire
+                drawPath(Path().apply { moveTo(w * 0.18f, h * 0.84f); lineTo(w * 0.18f, h * 0.58f); quadraticBezierTo(w * 0.5f, h * 0.18f, w * 0.82f, h * 0.58f); lineTo(w * 0.82f, h * 0.84f); close() }, color, style = st)
+                drawLine(color, pt(0.5f, 0.12f), pt(0.5f, 0.3f), strokeWidth = w * 0.09f, cap = StrokeCap.Round)
+                drawLine(color, pt(0.1f, 0.84f), pt(0.9f, 0.84f), strokeWidth = w * 0.09f, cap = StrokeCap.Round)
+            }
+            3 -> {   // two apartment towers
+                drawRoundRect(color, pt(0.1f, 0.28f), Size(w * 0.36f, h * 0.6f), CornerRadius(w * 0.04f), style = st)
+                drawRoundRect(color, pt(0.54f, 0.12f), Size(w * 0.36f, h * 0.76f), CornerRadius(w * 0.04f), style = st)
+                for (y in listOf(0.42f, 0.58f, 0.74f)) drawLine(color, pt(0.2f, y), pt(0.36f, y), strokeWidth = w * 0.06f, cap = StrokeCap.Round)
+                for (y in listOf(0.28f, 0.44f, 0.6f)) drawLine(color, pt(0.64f, y), pt(0.8f, y), strokeWidth = w * 0.06f, cap = StrokeCap.Round)
+            }
+            4 -> {   // train front
+                drawRoundRect(color, pt(0.2f, 0.1f), Size(w * 0.6f, h * 0.66f), CornerRadius(w * 0.12f), style = st)
+                drawLine(color, pt(0.2f, 0.46f), pt(0.8f, 0.46f), strokeWidth = w * 0.07f)
+                drawCircle(color, w * 0.05f, pt(0.35f, 0.62f)); drawCircle(color, w * 0.05f, pt(0.65f, 0.62f))
+                drawLine(color, pt(0.3f, 0.92f), pt(0.38f, 0.76f), strokeWidth = w * 0.08f, cap = StrokeCap.Round)
+                drawLine(color, pt(0.7f, 0.92f), pt(0.62f, 0.76f), strokeWidth = w * 0.08f, cap = StrokeCap.Round)
+            }
+            else -> {   // star
+                val c = pt(0.5f, 0.54f); val path = Path()
+                for (i in 0 until 10) {
+                    val a = Math.PI * i / 5 - Math.PI / 2; val r = if (i % 2 == 0) w * 0.42f else w * 0.18f
+                    val x = c.x + (r * Math.cos(a)).toFloat(); val y = c.y + (r * Math.sin(a)).toFloat()
+                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                path.close(); drawPath(path, color, style = st)
+            }
+        }
     }
 }

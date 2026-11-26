@@ -602,7 +602,7 @@ class Engine(private val ctx: Context) : SegStore {
             "SELECT name, kind, lat, lon, addr, phone, gk, " +
             "(CASE WHEN lname = ? THEN 0 WHEN lname LIKE ? THEN 1 WHEN ($inName) THEN 2 ELSE 3 END) * 1000 + " +
             "(CASE WHEN kind IN ('suburb','neighbourhood','village','town','city','locality','quarter','hamlet','city_block') THEN 0 " +
-            "WHEN kind = 'street' THEN 1 ELSE 2 END) * 100 + " +
+            "WHEN kind = 'street' OR kind IN ('school','college','university','hospital','apartments','residential','place_of_worship','station','attraction','kindergarten','mall','government','marketplace') THEN 1 ELSE 2 END) * 100 + " +
             "MIN(99.0, ((lat - ${near.lat}) * (lat - ${near.lat}) + (lon - ${near.lon}) * (lon - ${near.lon})) * 100) AS ord " +
             "FROM place WHERE $where) GROUP BY gk ORDER BY o LIMIT 30"
         val out = ArrayList<Place>()

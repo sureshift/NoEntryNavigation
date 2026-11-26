@@ -303,6 +303,34 @@ CREATE TABLE meta(k TEXT PRIMARY KEY, v TEXT);
 """
 
 
+OV_KINDS = [
+    (r'college|university|higher_edu', 'college'),
+    (r'school|education|academy|institute|coaching|kindergarten|preschool|tutor', 'school'),
+    (r'hospital|clinic|medical|doctor|dentist|health|diagnostic|pathology', 'hospital'),
+    (r'pharmacy|drugstore', 'pharmacy'),
+    (r'temple|mosque|church|gurudwara|religious|worship|monastery|shrine', 'place_of_worship'),
+    (r'apartment|condominium|housing|residential|society|hostel|pg_', 'apartments'),
+    (r'hotel|lodging|guest_house|resort|motel|dharamshala', 'hotel'),
+    (r'restaurant|cafe|food|bakery|sweet|dhaba|bar_|pub', 'restaurant'),
+    (r'bank|atm|financial', 'bank'),
+    (r'gas_station|fuel|petrol|charging', 'fuel'),
+    (r'metro|train|railway|bus_|transit|airport|station', 'station'),
+    (r'landmark|monument|historical|museum|attraction|tourist|memorial|fort|tomb', 'attraction'),
+    (r'park|garden|stadium|sport|gym|playground', 'park'),
+    (r'government|police|fire_station|court|municipal|post_office|embassy', 'government'),
+    (r'mall|shopping|supermarket|market|store|shop|retail', 'shop'),
+    (r'office|service|business|professional|company', 'office'),
+]
+
+
+def overture_kind(cat):
+    c = (cat or '').lower()
+    for rx, k in OV_KINDS:
+        if re.search(rx, c):
+            return k
+    return 'shop'
+
+
 def add_overture(b, path):
     """Merge Overture Maps businesses/places; skip ones OpenStreetMap already has (same name within ~120 m)."""
     import csv
@@ -320,7 +348,7 @@ def add_overture(b, path):
             if any(abs(la - a) < 0.0011 and abs(lo - o) < 0.0011 for a, o in have.get(ln, ())):
                 continue
             have.setdefault(ln, []).append((la, lo))
-            k = 'office' if 'office' in cat or 'service' in cat else 'shop'
+            k = overture_kind(cat)
             b.add_place(name, ln, k, la, lo, addr, phone)
             added += 1
     print(f'  merged {added} Overture places', flush=True)

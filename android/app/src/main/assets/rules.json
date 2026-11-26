@@ -1165,13 +1165,16 @@
    "name": "Agra Canal Road (Kalindi Kunj to Faridabad border)",
    "kind": "road",
    "names": [
-    "Agra Canal"
+    "Agra Canal",
+    "Kalandi Kunj Road",
+    "Kalindi Kunj Road",
+    "Faridabad kalindi kunj road"
    ],
    "bbox": [
-    77.28,
-    28.46,
-    77.36,
-    28.56
+    77.285,
+    28.485,
+    77.335,
+    28.575
    ],
    "vehicles": [
     "lcv",
@@ -1188,7 +1191,8 @@
      "23:00"
     ]
    ],
-   "effective": 20220812
+   "effective": 20220812,
+   "note": "Matched by road name (Kalindi Kunj Road toward the Faridabad border); the exact stretch is approximate."
   },
   {
    "id": "R02",
