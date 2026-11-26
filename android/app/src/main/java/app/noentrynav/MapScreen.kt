@@ -118,7 +118,7 @@ class MapController {
             // labels: road names along the road, then localities, chowks, societies, landmarks and shops by zoom
             st.addSource(GeoJsonSource("road-names", EMPTY_FC))
             st.addSource(GeoJsonSource("place-labels", EMPTY_FC))
-            val ex = org.maplibre.android.style.expressions.Expression
+            val ex = ExprHelper
             st.addLayer(
                 SymbolLayer("road-names-l", "road-names").withProperties(
                     symbolPlacement(Property.SYMBOL_PLACEMENT_LINE), textField(ex.get("name")), textFont(arrayOf("NotoSans-Regular")),
@@ -398,4 +398,12 @@ fun MapViewHost(
         modifier = Modifier.fillMaxSize(),
         update = { controller.render(state) }
     )
+}
+
+/** Short alias for MapLibre expression builders. */
+private object ExprHelper {
+    fun get(k: String) = org.maplibre.android.style.expressions.Expression.get(k)
+    fun eq(a: org.maplibre.android.style.expressions.Expression, b: org.maplibre.android.style.expressions.Expression) =
+        org.maplibre.android.style.expressions.Expression.eq(a, b)
+    fun literal(n: Number) = org.maplibre.android.style.expressions.Expression.literal(n)
 }
