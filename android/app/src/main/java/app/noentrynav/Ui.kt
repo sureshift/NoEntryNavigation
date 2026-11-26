@@ -448,7 +448,7 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
 
             s.message?.let { msg ->
                 Spacer(Modifier.height(12.dp))
-                val neutral = msg.startsWith("Loading") || msg.startsWith("Waiting") || msg.startsWith("Routing from") || msg.startsWith("Location is off")
+                val neutral = msg.startsWith("Loading") || msg.startsWith("Waiting") || msg.startsWith("Routing from") || msg.startsWith("Location is off") || msg.contains("gazette rule")
                 val good = msg.startsWith("You have arrived")
                 StatusChip(
                     msg,

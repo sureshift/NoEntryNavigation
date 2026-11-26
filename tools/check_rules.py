@@ -40,7 +40,7 @@ for r in d.get("rules", []):
         lon0, lat0, lon1, lat1 = r["bbox"]
         n = 0
         for nm in r["names"]:
-            for sid, a, b in cur.execute("SELECT id,a,b FROM seg WHERE name LIKE ?", (f"%{nm}%",)):
+            for sid, a, b in cur.execute("SELECT id,a,b FROM seg WHERE name LIKE ?", (f"%{nm}%",)).fetchall():
                 pa = cur.execute("SELECT lat,lon FROM node WHERE id=?", (a,)).fetchone()
                 pb = cur.execute("SELECT lat,lon FROM node WHERE id=?", (b,)).fetchone()
                 if not pa or not pb: continue
