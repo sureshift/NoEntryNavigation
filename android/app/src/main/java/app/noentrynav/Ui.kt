@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,6 +51,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
@@ -110,35 +113,42 @@ fun arrivalAt(sec: Double): String {
 fun MainScreen(vm: NavViewModel) {
     val s by vm.state.collectAsState()
     val view = LocalView.current
+    val density = LocalDensity.current
     SideEffect { view.keepScreenOn = s.navigating }
     BackHandler(enabled = s.screen == Screen.RULES) { vm.showRules(false) }
     BackHandler(enabled = s.screen == Screen.MAP && s.pin != null) { vm.dismissPin() }
     BackHandler(enabled = s.screen == Screen.MAP && s.pin == null && s.editing != null) { vm.edit(null) }
     BackHandler(enabled = s.screen == Screen.MAP && s.report != ReportStep.NONE) { vm.cancelReport() }
+    var topPx by remember { mutableStateOf(0) }       // height taken by the search / turn banner at the top
+    var bottomPx by remember { mutableStateOf(0) }    // height taken by the bottom sheet
 
     Box(Modifier.fillMaxSize()) {
         MapViewHost(s, vm.mapController, { vm.onMapLongPress(it) }, { vm.onMapTap(it) }, vm::onViewport)
 
-        if (s.navigating) NavTop(s, vm) else SearchTop(s, vm)
+        Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().onGloballyPositioned { topPx = it.size.height }) {
+            if (s.navigating) NavTop(s, vm) else SearchTop(s, vm)
+        }
 
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
-            if (s.pin == null && s.report != ReportStep.DETAILS) {
+        // Map buttons live only in the free space between the top card and the bottom sheet,
+        // and the less important ones drop out when that space is small, so nothing overlaps.
+        if (s.pin == null && s.report != ReportStep.DETAILS) {
+            BoxWithConstraints(
+                Modifier.fillMaxSize()
+                    .padding(top = with(density) { topPx.toDp() }, bottom = with(density) { bottomPx.toDp() })
+            ) {
+                val free = maxHeight
+                val showZoom = free >= 130.dp
+                val showTarget = free >= 195.dp
+                val showRules = free >= 260.dp && !s.navigating
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp),
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom
                 ) {
-                    if (s.report == ReportStep.NONE) {
+                    if (s.report == ReportStep.NONE && free >= 70.dp) {
                         ReportPill { if (s.navigating) vm.quickReport() else vm.beginReport() }
                     } else Spacer(Modifier.width(1.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.End) {
-                        Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 10.dp) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(Modifier.size(52.dp).clickable { vm.mapController.zoomBy(1.0) }, contentAlignment = Alignment.Center) { PlusIcon(C.Ink) }
-                                Box(Modifier.width(30.dp).height(1.dp).background(C.Line))
-                                Box(Modifier.size(52.dp).clickable { vm.mapController.zoomBy(-1.0) }, contentAlignment = Alignment.Center) { MinusIcon(C.Ink) }
-                            }
-                        }
-                        if (!s.navigating) {
+                        if (showRules) {
                             Box {
                                 RoundButton(onClick = { vm.showRules(true) }) { RulesIcon(C.Ink) }
                                 if (s.zones.isNotEmpty()) {
@@ -150,10 +160,22 @@ fun MainScreen(vm: NavViewModel) {
                                 }
                             }
                         }
-                        RoundButton(onClick = { vm.recenter() }) { TargetIcon(C.Ink) }
+                        if (showTarget) RoundButton(onClick = { vm.recenter() }) { TargetIcon(C.Ink) }
+                        if (showZoom) {
+                            Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 10.dp) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(Modifier.size(48.dp).clickable { vm.mapController.zoomBy(1.0) }, contentAlignment = Alignment.Center) { PlusIcon(C.Ink) }
+                                    Box(Modifier.width(28.dp).height(1.dp).background(C.Line))
+                                    Box(Modifier.size(48.dp).clickable { vm.mapController.zoomBy(-1.0) }, contentAlignment = Alignment.Center) { MinusIcon(C.Ink) }
+                                }
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { bottomPx = it.size.height }) {
             when {
                 s.report == ReportStep.DETAILS -> ReportSheet(s, vm)
                 s.pin != null -> PinSheet(s.pin!!, s.report, vm)

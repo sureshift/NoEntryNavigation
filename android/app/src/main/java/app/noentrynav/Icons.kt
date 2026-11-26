@@ -22,25 +22,53 @@ import androidx.compose.ui.unit.dp
 
 private fun DrawScope.st(w: Float) = Stroke(width = w * 0.09f, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
-/** Truck outline. variant 0 = LCV (short, low box), 1 = MCV (longer, taller), 2 = HCV (long, tall, extra axle). */
+/**
+ * Vehicle line icons, wider than tall (1.5 : 1).
+ * variant 0 = small pickup truck with open cargo bed (Tata Ace class, LCV)
+ * variant 1 = cab-over truck with closed box body (Canter class, MCV)
+ * variant 2 = tractor with long semi-trailer (HCV)
+ */
 @Composable
 fun TruckIcon(variant: Int, color: Color, dp: Dp = 28.dp) {
-    Canvas(Modifier.size(dp)) {
-        val w = size.minDimension
-        val s = st(w)
-        val boxLeft = when (variant) { 0 -> 0.24f; 1 -> 0.12f; else -> 0.02f }
-        val boxTop = when (variant) { 0 -> 0.40f; 1 -> 0.32f; else -> 0.22f }
-        drawRoundRect(color, Offset(w * boxLeft, w * boxTop), Size(w * (0.62f - boxLeft), w * (0.64f - boxTop)),
-            CornerRadius(w * 0.04f), style = s)
-        val cab = Path().apply {
-            moveTo(w * 0.62f, w * 0.38f); lineTo(w * 0.80f, w * 0.38f); lineTo(w * 0.95f, w * 0.54f)
-            lineTo(w * 0.95f, w * 0.64f); lineTo(w * 0.62f, w * 0.64f)
+    Canvas(Modifier.size(dp * 1.5f, dp)) {
+        val w = size.width
+        val h = size.height
+        val sw = h * 0.075f
+        val s = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        fun x(v: Float) = w * v
+        fun y(v: Float) = h * v
+        fun line(x0: Float, y0: Float, x1: Float, y1: Float) = drawLine(color, Offset(x(x0), y(y0)), Offset(x(x1), y(y1)), strokeWidth = sw, cap = StrokeCap.Round)
+        fun wheel(cx: Float, r: Float = 0.085f) {
+            drawCircle(Color.White, h * r, Offset(x(cx), y(0.78f)))
+            drawCircle(color, h * r, Offset(x(cx), y(0.78f)), style = s)
         }
-        drawPath(cab, color, style = s)
-        val wheels = when (variant) { 0 -> listOf(0.40f, 0.80f); 1 -> listOf(0.28f, 0.80f); else -> listOf(0.14f, 0.32f, 0.80f) }
-        wheels.forEach { x ->
-            drawCircle(Color.White, w * 0.085f, Offset(w * x, w * 0.74f))
-            drawCircle(color, w * 0.085f, Offset(w * x, w * 0.74f), style = s)
+        when (variant) {
+            0 -> {   // pickup: open bed + short bonnet cab
+                drawPath(Path().apply { moveTo(x(0.07f), y(0.44f)); lineTo(x(0.07f), y(0.70f)); lineTo(x(0.52f), y(0.70f)); lineTo(x(0.52f), y(0.44f)) }, color, style = s)
+                drawPath(Path().apply {
+                    moveTo(x(0.52f), y(0.70f)); lineTo(x(0.52f), y(0.32f)); lineTo(x(0.68f), y(0.32f)); lineTo(x(0.78f), y(0.50f))
+                    lineTo(x(0.93f), y(0.54f)); lineTo(x(0.93f), y(0.70f)); close()
+                }, color, style = s)
+                drawPath(Path().apply { moveTo(x(0.58f), y(0.40f)); lineTo(x(0.66f), y(0.40f)); lineTo(x(0.72f), y(0.50f)); lineTo(x(0.58f), y(0.50f)); close() }, color, style = s)
+                wheel(0.26f); wheel(0.76f)
+            }
+            1 -> {   // cab-over with closed box
+                drawRoundRect(color, Offset(x(0.05f), y(0.16f)), Size(x(0.60f), y(0.54f)), CornerRadius(h * 0.05f), style = s)
+                drawPath(Path().apply {
+                    moveTo(x(0.65f), y(0.70f)); lineTo(x(0.65f), y(0.30f)); lineTo(x(0.84f), y(0.30f)); lineTo(x(0.94f), y(0.46f)); lineTo(x(0.94f), y(0.70f)); close()
+                }, color, style = s)
+                drawPath(Path().apply { moveTo(x(0.70f), y(0.37f)); lineTo(x(0.81f), y(0.37f)); lineTo(x(0.88f), y(0.47f)); lineTo(x(0.70f), y(0.47f)); close() }, color, style = s)
+                wheel(0.22f); wheel(0.36f); wheel(0.80f)
+            }
+            else -> {   // tractor + long trailer
+                drawRoundRect(color, Offset(x(0.02f), y(0.20f)), Size(x(0.68f), y(0.44f)), CornerRadius(h * 0.04f), style = s)
+                line(0.02f, 0.68f, 0.97f, 0.68f)
+                drawPath(Path().apply {
+                    moveTo(x(0.74f), y(0.68f)); lineTo(x(0.74f), y(0.30f)); lineTo(x(0.88f), y(0.30f)); lineTo(x(0.97f), y(0.46f)); lineTo(x(0.97f), y(0.68f))
+                }, color, style = s)
+                drawPath(Path().apply { moveTo(x(0.78f), y(0.37f)); lineTo(x(0.86f), y(0.37f)); lineTo(x(0.92f), y(0.47f)); lineTo(x(0.78f), y(0.47f)); close() }, color, style = s)
+                wheel(0.11f, 0.075f); wheel(0.22f, 0.075f); wheel(0.33f, 0.075f); wheel(0.68f, 0.075f); wheel(0.90f, 0.075f)
+            }
         }
     }
 }
