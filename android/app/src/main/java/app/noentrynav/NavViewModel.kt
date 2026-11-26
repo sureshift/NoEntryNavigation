@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnInitListener {
+class NavViewModel(private val app: Application) : AndroidViewModel(app), TextToSpeech.OnInitListener {
 
     private val _s = MutableStateFlow(UiState(message = "Loading offline Delhi map… (first start takes a minute)"))
     val state: StateFlow<UiState> = _s
@@ -38,14 +38,62 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
     private var locStarted = false
 
     init {
+        _s.update { it.copy(crash = CrashLog.take(app)) }
+        load()
+        startTicker()
+    }
+
+    private fun load() {
+        _s.update { it.copy(loadError = null, message = "Loading offline Delhi map… (first start takes a minute)") }
         viewModelScope.launch {
             try {
                 engine.load()
-                _s.update { it.copy(ready = true, message = null, zones = engine.zonesFor(it.vehicle.key)) }
-            } catch (e: Exception) {
-                _s.update { it.copy(message = "Map data could not be loaded: ${e.message}") }
+                val warn = engine.ruleWarnings
+                _s.update {
+                    it.copy(
+                        ready = true, loadError = null,
+                        message = if (warn.isEmpty()) null else "${warn.size} gazette rule${if (warn.size > 1) "s are" else " is"} not applied - see Rules",
+                        notices = engine.notices, allZones = engine.allZones
+                    )
+                }
+                refreshZones()
+            } catch (e: Throwable) {
+                _s.update { it.copy(ready = false, message = null, loadError = e.message ?: "Map data could not be loaded") }
             }
         }
+    }
+
+    fun retryLoad() = load()
+
+    fun dismissCrash() { _s.update { it.copy(crash = null) } }
+
+    /** Every minute: a restriction window may have started or ended. */
+    private fun startTicker() {
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(30_000)
+                try {
+                    if (_s.value.ready) {
+                        val st = _s.value
+                        val zs = engine.zonesFor(st.vehicle.key)
+                        if (zs.map { it.id } != st.zones.map { it.id }) {
+                            _s.update { it.copy(zones = zs) }
+                            updateZoneLines(zs)
+                            if (!st.navigating && st.route != null) requestRoute()
+                        }
+                    }
+                } catch (e: Exception) { /* keep ticking */ }
+            }
+        }
+    }
+
+    private suspend fun updateZoneLinesNow(zs: List<Zone>) {
+        val g = try { engine.zoneLines(zs) } catch (e: Exception) { null }
+        _s.update { it.copy(zoneLines = g) }
+    }
+
+    private fun updateZoneLines(zs: List<Zone>) {
+        viewModelScope.launch { updateZoneLinesNow(zs) }
     }
 
     /** Called by the map when the camera stops moving: draw the roads that are in view. */
@@ -101,7 +149,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
                 }
             }
             locStarted = any
-            if (!any) _s.update { it.copy(message = "Turn on device location (GPS) to navigate.") }
+            if (!any) _s.update { it.copy(message = "Location is off. You can still set a start point and preview routes.") }
             val last = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 ?: lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
             if (last != null) onLocation(last)
@@ -143,55 +191,122 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
         }
     }
 
+    fun edit(f: Field?) {
+        if (_s.value.navigating) return
+        _s.update { it.copy(editing = f, results = emptyList(), message = null) }
+    }
+
+    /** A search result was tapped: it becomes the start or the destination depending on the field being edited. */
     fun pickPlace(p: Place) {
-        _s.update { it.copy(results = emptyList()) }
-        setDestination(p.pos, p.name)
+        val name = p.name.substringBefore(" · ")
+        if (_s.value.editing == Field.FROM) setOrigin(p.pos, name) else setDestination(p.pos, name)
+    }
+
+    fun setOrigin(p: LatLon, name: String = "Dropped pin") {
+        if (_s.value.navigating) return
+        _s.update {
+            it.copy(
+                origin = p, originName = name, route = null, message = null, results = emptyList(), pin = null,
+                editing = if (it.dest == null) Field.TO else null
+            )
+        }
+        if (_s.value.dest != null) requestRoute()
+    }
+
+    fun useCurrentLocation() {
+        if (_s.value.navigating) return
+        _s.update { it.copy(origin = null, originName = "", route = null, results = emptyList(), editing = null) }
+        if (_s.value.dest != null) requestRoute()
     }
 
     fun setDestination(p: LatLon, name: String = "Dropped pin") {
         if (_s.value.navigating) return
-        _s.update { it.copy(dest = p, destName = name, route = null, message = null, results = emptyList()) }
+        _s.update { it.copy(dest = p, destName = name, route = null, message = null, results = emptyList(), pin = null, editing = null) }
         requestRoute()
     }
 
+    fun swap() {
+        val st = _s.value
+        if (st.navigating) return
+        val d = st.dest ?: return
+        val from = st.origin ?: st.me
+        if (from == null) { _s.update { it.copy(message = "Turn on GPS, or set a start point, to swap.") }; return }
+        val fromName = if (st.origin == null) "My location" else st.originName
+        _s.update {
+            it.copy(origin = d, originName = it.destName, dest = from, destName = fromName, route = null, message = null)
+        }
+        requestRoute()
+    }
+
+    fun onMapLongPress(p: LatLon) {
+        if (_s.value.navigating) return
+        _s.update { it.copy(pin = p) }
+    }
+
+    fun dismissPin() { _s.update { it.copy(pin = null) } }
+
+    fun showRules(show: Boolean) { _s.update { it.copy(screen = if (show) Screen.RULES else Screen.MAP) } }
+
     fun clearRoute() {
-        _s.update { it.copy(dest = null, destName = "", route = null, message = null) }
+        _s.update { it.copy(dest = null, destName = "", origin = null, originName = "", route = null, message = null, editing = null, pin = null) }
     }
 
     fun refreshZones() {
         if (!_s.value.ready) return
-        _s.update { it.copy(zones = engine.zonesFor(it.vehicle.key)) }
+        viewModelScope.launch {
+            val zs = engine.zonesFor(_s.value.vehicle.key)
+            _s.update { it.copy(zones = zs) }
+            updateZoneLinesNow(zs)
+        }
     }
 
-    fun requestRoute(auto: Boolean = false) {
+    fun requestRoute(auto: Boolean = false, thenStart: Boolean = false) {
         val st = _s.value
         val dest = st.dest ?: return
         if (!st.ready) return
-        val me = st.me
-        if (me == null) {
-            _s.update { it.copy(message = "Waiting for GPS fix…") }
+        val from = st.origin ?: st.me
+        if (from == null) {
+            _s.update { it.copy(message = "Waiting for GPS fix… or set a start point.") }
             return
         }
         viewModelScope.launch {
             _s.update { it.copy(busy = true, message = null) }
             try {
-                val r = engine.route(me, dest, _s.value.vehicle)
+                val zs = engine.zonesFor(_s.value.vehicle.key)
+                val r = engine.route(from, dest, _s.value.vehicle)
                 progressIdx = 0
                 offCount = 0
                 announced.clear()
-                _s.update { it.copy(route = r, busy = false, remainingM = r.cum.last()) }
+                _s.update { it.copy(route = r, busy = false, remainingM = r.cum.last(), zones = zs) }
+                updateZoneLinesNow(zs)
                 if (auto) {
                     announced.add(0)
                     _s.value.me?.let { updateProgress(it) }
                 }
-            } catch (e: Exception) {
+                if (thenStart) startNav()
+            } catch (e: Throwable) {
                 _s.update { it.copy(busy = false, message = e.message ?: "Routing failed") }
             }
         }
     }
 
     fun startNav() {
-        val r = _s.value.route ?: return
+        val st = _s.value
+        val r = st.route ?: return
+        val me = st.me
+        val o = st.origin
+        if (o != null) {
+            if (me == null) {
+                _s.update { it.copy(message = "Turn on GPS to start navigation. You can still preview this route.") }
+                return
+            }
+            if (Geo.dist(me, o) > 400.0) {
+                // the manual start is not where the truck is: navigate from the GPS position instead
+                _s.update { it.copy(origin = null, originName = "", route = null, message = "Routing from your current location") }
+                requestRoute(thenStart = true)
+                return
+            }
+        }
         progressIdx = 0
         offCount = 0
         announced.clear()
@@ -276,24 +391,25 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
         requestRoute(auto = true)
     }
 
-    /** Every 2 min: re-fetch active zones; if a zone that started after routing blocks the rest of the route, reroute. */
+    /** Every minute while driving: if the set of active rules changed since the route was made, reroute. */
     private fun maybeCheckZones() {
         val now = SystemClock.elapsedRealtime()
         if (now - lastZoneCheck < 60_000) return
         lastZoneCheck = now
         viewModelScope.launch {
-            val zs = engine.zonesFor(_s.value.vehicle.key)
-            _s.update { it.copy(zones = zs) }
-            val r = _s.value.route ?: return@launch
-            val appliedIds = r.applied.map { it.first }.toSet()
-            val hit = zs.firstOrNull { z ->
-                z.id !in appliedIds && Geo.routeHitsPolygon(r.points, progressIdx, z.ring)
-            }
-            if (hit != null) {
-                speak("No entry zone ahead. Recalculating.")
-                lastReroute = SystemClock.elapsedRealtime()
-                requestRoute(auto = true)
-            }
+            try {
+                val zs = engine.zonesFor(_s.value.vehicle.key)
+                val r = _s.value.route ?: return@launch
+                val before = r.applied.map { it.first }.toSet()
+                val after = zs.map { it.id }.toSet()
+                _s.update { it.copy(zones = zs) }
+                if (before != after) {
+                    updateZoneLinesNow(zs)
+                    speak("Restrictions have changed. Recalculating.")
+                    lastReroute = SystemClock.elapsedRealtime()
+                    requestRoute(auto = true)
+                }
+            } catch (e: Exception) { /* try again next minute */ }
         }
     }
 

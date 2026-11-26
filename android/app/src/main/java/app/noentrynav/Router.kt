@@ -2,9 +2,7 @@ package app.noentrynav
 
 import java.util.BitSet
 
-class Profile(val heavy: Boolean, val heightM: Double, val weightT: Double) {
-    val speedFactor: Double = if (heavy) 0.8 else 1.0
-}
+class Profile(val heavy: Boolean, val heightM: Double, val weightT: Double, val speedFactor: Double = if (heavy) 0.8 else 1.0)
 
 object Router {
     class Seed(val node: Int, val cost: Double, val viaDir: Int)    // viaDir: 0 = origin moves a->b to reach node

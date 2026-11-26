@@ -1,5 +1,6 @@
 package app.noentrynav
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -106,18 +110,43 @@ fun MainScreen(vm: NavViewModel) {
     val s by vm.state.collectAsState()
     val view = LocalView.current
     SideEffect { view.keepScreenOn = s.navigating }
+    BackHandler(enabled = s.screen == Screen.RULES) { vm.showRules(false) }
+    BackHandler(enabled = s.screen == Screen.MAP && s.pin != null) { vm.dismissPin() }
+    BackHandler(enabled = s.screen == Screen.MAP && s.pin == null && s.editing != null) { vm.edit(null) }
 
     Box(Modifier.fillMaxSize()) {
-        MapViewHost(s, vm.mapController, { vm.setDestination(it) }, vm::onViewport)
+        MapViewHost(s, vm.mapController, { vm.onMapLongPress(it) }, vm::onViewport)
 
         if (s.navigating) NavTop(s, vm) else SearchTop(s, vm)
 
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth().padding(end = 14.dp, bottom = 12.dp), horizontalArrangement = Arrangement.End) {
-                RoundButton(onClick = { vm.recenter() }) { TargetIcon(C.Ink) }
+            if (s.pin == null) {
+                Row(Modifier.fillMaxWidth().padding(end = 14.dp, bottom = 12.dp), horizontalArrangement = Arrangement.End) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.End) {
+                        if (!s.navigating) {
+                            Box {
+                                RoundButton(onClick = { vm.showRules(true) }) { RulesIcon(C.Ink) }
+                                if (s.zones.isNotEmpty()) {
+                                    Box(
+                                        Modifier.align(Alignment.TopEnd).padding(top = 2.dp, end = 2.dp).size(14.dp)
+                                            .clip(CircleShape).background(Color.White).padding(2.dp)
+                                            .clip(CircleShape).background(C.Danger)
+                                    )
+                                }
+                            }
+                        }
+                        RoundButton(onClick = { vm.recenter() }) { TargetIcon(C.Ink) }
+                    }
+                }
             }
-            if (s.navigating) NavBottom(s, vm) else PlanSheet(s, vm)
+            when {
+                s.pin != null -> PinSheet(s.pin!!, vm)
+                s.navigating -> NavBottom(s, vm)
+                else -> PlanSheet(s, vm)
+            }
         }
+
+        if (s.screen == Screen.RULES) RulesScreen(s, vm)
     }
 }
 
@@ -125,50 +154,117 @@ fun MainScreen(vm: NavViewModel) {
 
 @Composable
 private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
-    var query by remember { mutableStateOf("") }
+    var query by remember(s.editing, s.dest, s.origin) { mutableStateOf("") }
     val focus = LocalFocusManager.current
+    val planning = s.dest != null || s.origin != null || s.editing == Field.FROM
     Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
-        Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 10.dp) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                SearchIcon(C.Muted)
-                Spacer(Modifier.width(12.dp))
-                BasicTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    enabled = s.ready,
-                    singleLine = true,
-                    textStyle = TextStyle(fontSize = 17.sp, color = C.Ink),
-                    cursorBrush = SolidColor(C.Primary),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { focus.clearFocus(); vm.search(query) }),
-                    modifier = Modifier.weight(1f),
-                    decorationBox = { inner ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (query.isEmpty()) {
-                                Text(if (s.ready) "Where to?" else "Loading map…", color = C.Muted, fontSize = 17.sp)
+        if (!planning) {
+            Surface(shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 10.dp) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SearchIcon(C.Muted)
+                    Spacer(Modifier.width(12.dp))
+                    BasicTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        enabled = s.ready,
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 17.sp, color = C.Ink),
+                        cursorBrush = SolidColor(C.Primary),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { focus.clearFocus(); vm.search(query) }),
+                        modifier = Modifier.weight(1f),
+                        decorationBox = { inner ->
+                            Box(contentAlignment = Alignment.CenterStart) {
+                                if (query.isEmpty()) {
+                                    Text(if (s.ready) "Where to?" else "Loading map…", color = C.Muted, fontSize = 17.sp)
+                                }
+                                inner()
                             }
-                            inner()
                         }
+                    )
+                    if (query.isNotEmpty()) {
+                        Box(
+                            Modifier.size(32.dp).clip(CircleShape).clickable { query = "" },
+                            contentAlignment = Alignment.Center
+                        ) { CloseIcon(C.Muted, 16.dp) }
                     }
-                )
-                if (query.isNotEmpty()) {
-                    Box(
-                        Modifier.size(32.dp).clip(CircleShape).clickable { query = "" },
-                        contentAlignment = Alignment.Center
-                    ) { CloseIcon(C.Muted, 16.dp) }
+                }
+            }
+            if (s.ready && s.results.isEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(20.dp), color = Color.White, shadowElevation = 6.dp,
+                    modifier = Modifier.clickable { vm.edit(Field.FROM) }
+                ) {
+                    Text(
+                        "Start from another place", color = C.Primary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    )
+                }
+            }
+        } else {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 10.dp) {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 16.dp, top = 6.dp, bottom = 6.dp, end = 6.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(Modifier.padding(top = 18.dp).width(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.size(12.dp).clip(CircleShape).background(C.Primary).padding(3.dp).clip(CircleShape).background(Color.White))
+                        Box(Modifier.width(2.dp).height(37.dp).background(C.Line))
+                        Box(Modifier.size(12.dp).clip(RoundedCornerShape(3.dp)).background(C.Ink))
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        FieldRow(
+                            text = if (s.origin == null) "Current location" else s.originName,
+                            hint = "Choose start point",
+                            editing = s.editing == Field.FROM, query = query, onQuery = { query = it },
+                            onTap = { vm.edit(Field.FROM) },
+                            onSearch = { focus.clearFocus(); vm.search(query) }
+                        )
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(C.Line))
+                        FieldRow(
+                            text = s.destName, hint = "Where to?",
+                            editing = s.editing == Field.TO || (s.editing == null && s.dest == null),
+                            query = query, onQuery = { query = it },
+                            onTap = { vm.edit(Field.TO) },
+                            onSearch = { focus.clearFocus(); vm.search(query) }
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier.size(44.dp).clip(CircleShape).clickable { vm.swap() },
+                            contentAlignment = Alignment.Center
+                        ) { SwapIcon(C.Muted) }
+                        Box(
+                            Modifier.size(44.dp).clip(CircleShape).clickable { query = ""; vm.clearRoute() },
+                            contentAlignment = Alignment.Center
+                        ) { CloseIcon(C.Muted, 16.dp) }
+                    }
                 }
             }
         }
-        if (s.results.isNotEmpty()) {
+        if (s.results.isNotEmpty() || s.editing == Field.FROM) {
             Spacer(Modifier.height(8.dp))
             Surface(shape = RoundedCornerShape(20.dp), color = Color.White, shadowElevation = 10.dp) {
                 Column {
+                    if (s.editing == Field.FROM) {
+                        Row(
+                            Modifier.fillMaxWidth().clickable { query = ""; focus.clearFocus(); vm.useCurrentLocation() }
+                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TargetIcon(C.Primary, 20.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Text("Use my current location", color = C.Primary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
                     s.results.forEachIndexed { i, p ->
                         val parts = p.name.split(" · ")
-                        if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(C.Line))
+                        if (i > 0 || s.editing == Field.FROM) Box(Modifier.fillMaxWidth().height(1.dp).background(C.Line))
                         Column(
                             Modifier.fillMaxWidth()
                                 .clickable { query = ""; focus.clearFocus(); vm.pickPlace(p) }
@@ -180,6 +276,42 @@ private fun BoxScope.SearchTop(s: UiState, vm: NavViewModel) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FieldRow(
+    text: String, hint: String, editing: Boolean, query: String,
+    onQuery: (String) -> Unit, onTap: () -> Unit, onSearch: () -> Unit
+) {
+    Box(
+        Modifier.fillMaxWidth().height(48.dp).then(if (editing) Modifier else Modifier.clickable(onClick = onTap)),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        if (editing) {
+            val fr = remember { FocusRequester() }
+            LaunchedEffect(Unit) { try { fr.requestFocus() } catch (_: Exception) {} }
+            BasicTextField(
+                value = query, onValueChange = onQuery, singleLine = true,
+                textStyle = TextStyle(fontSize = 16.sp, color = C.Ink),
+                cursorBrush = SolidColor(C.Primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                modifier = Modifier.fillMaxWidth().focusRequester(fr),
+                decorationBox = { inner ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (query.isEmpty()) Text(hint, color = C.Muted, fontSize = 16.sp)
+                        inner()
+                    }
+                }
+            )
+        } else {
+            Text(
+                text.ifBlank { hint }, color = if (text.isBlank()) C.Muted else C.Ink, fontSize = 16.sp,
+                fontWeight = if (text.isBlank()) FontWeight.Normal else FontWeight.Medium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -228,14 +360,29 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                 )
                 Spacer(Modifier.height(12.dp))
             }
+            if (s.loadError != null) {
+                StatusChip(s.loadError, C.DangerBg, C.Danger)
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = { vm.retryLoad() },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = C.Primary)
+                ) { Text("Try again", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.height(12.dp))
+            }
+            s.crash?.let {
+                StatusChip("The app closed unexpectedly last time ($it). Tap to dismiss.", C.Chip, C.Muted) { vm.dismissCrash() }
+                Spacer(Modifier.height(12.dp))
+            }
             Segmented(s.vehicle) { vm.setVehicle(it) }
             Spacer(Modifier.height(16.dp))
 
             val route = s.route
             if (route != null) {
                 Text(
-                    s.destName.ifBlank { "Dropped pin" }, color = C.Muted, fontSize = 14.sp,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                    (if (s.origin != null) s.originName.ifBlank { "Start" } + " to " else "To ") + s.destName.ifBlank { "Dropped pin" },
+                    color = C.Muted, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(fmtTime(route.timeSec), color = C.Ink, fontSize = 32.sp, fontWeight = FontWeight.Bold)
@@ -243,12 +390,17 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                     Text("${"%.1f".format(route.distKm)} km", color = C.Muted, fontSize = 17.sp, modifier = Modifier.padding(bottom = 5.dp))
                 }
                 Text("Arrive ${arrivalAt(route.timeSec)}", color = C.Muted, fontSize = 14.sp)
-                if (route.applied.isNotEmpty()) {
+                route.warning?.let {
                     Spacer(Modifier.height(10.dp))
+                    StatusChip(it, C.DangerBg, C.Danger) { vm.showRules(true) }
+                }
+                if (route.warning == null && route.applied.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    val n = route.applied.size
                     StatusChip(
-                        "Routed around: " + route.applied.joinToString { it.second.removePrefix("SAMPLE: ") },
-                        C.DangerBg, C.Danger
-                    )
+                        "Avoiding $n active no-entry rule${if (n > 1) "s" else ""} for ${s.vehicle.label}",
+                        C.OkBg, C.Ok
+                    ) { vm.showRules(true) }
                 }
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -283,19 +435,20 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                 }
             } else {
                 if (s.ready) {
+                    val roads = s.zones.map { it.ruleId }.distinct().size
                     if (s.zones.isNotEmpty()) {
-                        StatusChip("${s.zones.size} no-entry zone${if (s.zones.size > 1) "s" else ""} active for ${s.vehicle.label} now", C.DangerBg, C.Danger)
+                        StatusChip("$roads no-entry rule${if (roads > 1) "s" else ""} active for ${s.vehicle.label} now. Tap for details", C.DangerBg, C.Danger) { vm.showRules(true) }
                     } else {
-                        StatusChip("No no-entry zones active for ${s.vehicle.label} right now", C.OkBg, C.Ok)
+                        StatusChip("No gazette restrictions active for ${s.vehicle.label} right now", C.OkBg, C.Ok) { vm.showRules(true) }
                     }
                     Spacer(Modifier.height(10.dp))
                 }
-                Text("Search above, or long-press the map to set a destination.", color = C.Muted, fontSize = 15.sp)
+                Text("Search above, or long-press the map to set a start or destination.", color = C.Muted, fontSize = 15.sp)
             }
 
             s.message?.let { msg ->
                 Spacer(Modifier.height(12.dp))
-                val neutral = msg.startsWith("Loading") || msg.startsWith("Waiting")
+                val neutral = msg.startsWith("Loading") || msg.startsWith("Waiting") || msg.startsWith("Routing from") || msg.startsWith("Location is off")
                 val good = msg.startsWith("You have arrived")
                 StatusChip(
                     msg,
@@ -304,7 +457,40 @@ private fun PlanSheet(s: UiState, vm: NavViewModel) {
                 )
             }
             Spacer(Modifier.height(10.dp))
-            Text("Offline · Map data © OpenStreetMap contributors", color = C.Muted, fontSize = 12.sp)
+            Text("Offline · Map data © OpenStreetMap contributors · Rules as of 26 Nov 2026", color = C.Muted, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun PinSheet(p: LatLon, vm: NavViewModel) {
+    Surface(shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), color = Color.White, shadowElevation = 20.dp) {
+        Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 18.dp)) {
+            Box(
+                Modifier.align(Alignment.CenterHorizontally).width(38.dp).height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)).background(C.Line)
+            )
+            Spacer(Modifier.height(14.dp))
+            Text("Dropped pin", color = C.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("%.5f, %.5f".format(p.lat, p.lon), color = C.Muted, fontSize = 14.sp)
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Chip)
+                        .clickable { vm.setOrigin(p) },
+                    contentAlignment = Alignment.Center
+                ) { Text("Start here", color = C.Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                Box(
+                    Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).background(C.Primary)
+                        .clickable { vm.setDestination(p) },
+                    contentAlignment = Alignment.Center
+                ) { Text("Go here", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Cancel", color = C.Muted, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                modifier = Modifier.align(Alignment.CenterHorizontally).clickable { vm.dismissPin() }.padding(12.dp)
+            )
         }
     }
 }
@@ -334,29 +520,34 @@ private fun NavBottom(s: UiState, vm: NavViewModel) {
 // ---------------------------------------------------------------- small components
 
 @Composable
-private fun Segmented(current: Vehicle, onPick: (Vehicle) -> Unit) {
+internal fun Segmented(current: Vehicle, onPick: (Vehicle) -> Unit) {
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(C.Chip).padding(4.dp)) {
         VEHICLES.forEach { v ->
             val sel = v.key == current.key
             Box(
                 Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
                     .background(if (sel) Color.White else Color.Transparent)
-                    .clickable { onPick(v) }.padding(vertical = 12.dp),
+                    .clickable { onPick(v) }.padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    v.label, color = if (sel) C.Primary else C.Muted, fontSize = 14.sp, maxLines = 1,
-                    fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        v.label, color = if (sel) C.Primary else C.Ink, fontSize = 16.sp, maxLines = 1,
+                        fontWeight = if (sel) FontWeight.Bold else FontWeight.SemiBold
+                    )
+                    Text(v.sub, color = C.Muted, fontSize = 11.sp, maxLines = 1)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StatusChip(text: String, bg: Color, fg: Color) {
+internal fun StatusChip(text: String, bg: Color, fg: Color, onClick: (() -> Unit)? = null) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(bg).padding(horizontal = 14.dp, vertical = 11.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(bg)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(fg))
@@ -374,7 +565,7 @@ private fun Stat(value: String, label: String) {
 }
 
 @Composable
-private fun RoundButton(onClick: () -> Unit, content: @Composable () -> Unit) {
+internal fun RoundButton(onClick: () -> Unit, content: @Composable () -> Unit) {
     Surface(shape = CircleShape, color = Color.White, shadowElevation = 10.dp) {
         Box(Modifier.size(52.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) { content() }
     }
@@ -383,7 +574,7 @@ private fun RoundButton(onClick: () -> Unit, content: @Composable () -> Unit) {
 // ---------------------------------------------------------------- icons (drawn, no icon library)
 
 @Composable
-private fun SearchIcon(color: Color, dp: Dp = 22.dp) {
+internal fun SearchIcon(color: Color, dp: Dp = 22.dp) {
     Canvas(Modifier.size(dp)) {
         val w = size.minDimension
         drawCircle(color = color, radius = w * 0.32f, center = Offset(w * 0.42f, w * 0.42f), style = Stroke(width = w * 0.11f))
@@ -392,7 +583,7 @@ private fun SearchIcon(color: Color, dp: Dp = 22.dp) {
 }
 
 @Composable
-private fun CloseIcon(color: Color, dp: Dp = 18.dp) {
+internal fun CloseIcon(color: Color, dp: Dp = 18.dp) {
     Canvas(Modifier.size(dp)) {
         val w = size.minDimension
         drawLine(color = color, start = Offset(w * 0.15f, w * 0.15f), end = Offset(w * 0.85f, w * 0.85f), strokeWidth = w * 0.13f, cap = StrokeCap.Round)
@@ -401,7 +592,7 @@ private fun CloseIcon(color: Color, dp: Dp = 18.dp) {
 }
 
 @Composable
-private fun TargetIcon(color: Color, dp: Dp = 24.dp) {
+internal fun TargetIcon(color: Color, dp: Dp = 24.dp) {
     Canvas(Modifier.size(dp)) {
         val w = size.minDimension
         val c = Offset(w / 2, w / 2)
@@ -432,6 +623,44 @@ private fun TurnArrow(turn: Int, arrive: Boolean, color: Color, dp: Dp) {
                 }
                 drawPath(head, color = color, style = Stroke(width = w * 0.14f, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
+        }
+    }
+}
+
+@Composable
+internal fun BackIcon(color: Color, dp: Dp = 24.dp) {
+    Canvas(Modifier.size(dp)) {
+        val w = size.minDimension
+        drawLine(color = color, start = Offset(w * 0.85f, w / 2), end = Offset(w * 0.15f, w / 2), strokeWidth = w * 0.11f, cap = StrokeCap.Round)
+        val head = Path().apply { moveTo(w * 0.45f, w * 0.2f); lineTo(w * 0.15f, w / 2); lineTo(w * 0.45f, w * 0.8f) }
+        drawPath(head, color = color, style = Stroke(width = w * 0.11f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+@Composable
+internal fun SwapIcon(color: Color, dp: Dp = 22.dp) {
+    Canvas(Modifier.size(dp)) {
+        val w = size.minDimension
+        val sw = w * 0.1f
+        drawLine(color = color, start = Offset(w * 0.32f, w * 0.88f), end = Offset(w * 0.32f, w * 0.14f), strokeWidth = sw, cap = StrokeCap.Round)
+        drawPath(Path().apply { moveTo(w * 0.12f, w * 0.34f); lineTo(w * 0.32f, w * 0.12f); lineTo(w * 0.52f, w * 0.34f) },
+            color = color, style = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawLine(color = color, start = Offset(w * 0.68f, w * 0.12f), end = Offset(w * 0.68f, w * 0.86f), strokeWidth = sw, cap = StrokeCap.Round)
+        drawPath(Path().apply { moveTo(w * 0.48f, w * 0.66f); lineTo(w * 0.68f, w * 0.88f); lineTo(w * 0.88f, w * 0.66f) },
+            color = color, style = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+/** A page with text lines: opens the gazette rules list. */
+@Composable
+internal fun RulesIcon(color: Color, dp: Dp = 24.dp) {
+    Canvas(Modifier.size(dp)) {
+        val w = size.minDimension
+        val sw = w * 0.09f
+        drawRoundRect(color = color, topLeft = Offset(w * 0.2f, w * 0.1f), size = androidx.compose.ui.geometry.Size(w * 0.6f, w * 0.8f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.1f), style = Stroke(width = sw))
+        for (y in listOf(0.34f, 0.5f, 0.66f)) {
+            drawLine(color = color, start = Offset(w * 0.34f, w * y), end = Offset(w * 0.66f, w * y), strokeWidth = sw, cap = StrokeCap.Round)
         }
     }
 }

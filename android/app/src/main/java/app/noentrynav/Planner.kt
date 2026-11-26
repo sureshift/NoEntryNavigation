@@ -44,6 +44,11 @@ object Planner {
         if (zones.isEmpty()) return null
         val bs = BitSet(g.nSegs)
         for (z in zones) {
+            val zs = z.segs
+            if (zs != null) {
+                for (s in zs) if (s in 0 until g.nSegs) bs.set(s)
+                continue
+            }
             if (z.ring.size < 3) continue
             val minLat = z.ring.minOf { it.lat }; val maxLat = z.ring.maxOf { it.lat }
             val minLon = z.ring.minOf { it.lon }; val maxLon = z.ring.maxOf { it.lon }

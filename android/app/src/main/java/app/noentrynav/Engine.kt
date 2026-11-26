@@ -5,6 +5,10 @@ import android.database.sqlite.SQLiteDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
@@ -29,9 +33,17 @@ private fun cellCond(minLat: Double, maxLat: Double, minLon: Double, maxLon: Dou
 
 /** Fully offline engine: road graph, places and no-entry rules all come from files inside the app. */
 class Engine(private val ctx: Context) : SegStore {
-    private lateinit var db: SQLiteDatabase
+    private var db: SQLiteDatabase? = null
     private lateinit var graph: Graph
     private var zones: List<Zone> = emptyList()
+    private val lineCache = HashMap<Long, String>()
+
+    /** Everything the rules screen needs. */
+    var notices: List<Notice> = emptyList(); private set
+    val allZones: List<Zone> get() = zones
+    var ruleWarnings: List<String> = emptyList(); private set
+
+    private fun d(): SQLiteDatabase = db ?: throw IllegalStateException("Map database is not open")
 
     fun now(): Clock {
         val c = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"))
@@ -43,30 +55,62 @@ class Engine(private val ctx: Context) : SegStore {
         )
     }
 
+    /** Copy the bundled database into app storage (atomically, so a failed copy never leaves a half file). */
+    private fun installDb(dbFile: File, stamp: Long) {
+        val prefs = ctx.getSharedPreferences("noentry", Context.MODE_PRIVATE)
+        val tmp = File(dbFile.path + ".tmp")
+        tmp.delete()
+        dbFile.parentFile?.mkdirs()
+        try {
+            ctx.assets.open("delhi.db").use { i -> tmp.outputStream().use { o -> i.copyTo(o, 64 * 1024) } }
+        } catch (e: FileNotFoundException) {
+            tmp.delete()
+            throw RuntimeException("The map database is missing from this app build. Please install the latest APK.")
+        } catch (e: IOException) {
+            tmp.delete()
+            val full = (e.message ?: "").contains("ENOSPC", true) || (e.message ?: "").contains("space", true)
+            throw RuntimeException(if (full) "Not enough free storage to unpack the Delhi map (about 150 MB needed)." else "Could not unpack the map: ${e.message}")
+        }
+        dbFile.delete()
+        File(dbFile.path + "-journal").delete()
+        if (!tmp.renameTo(dbFile)) { tmp.delete(); throw RuntimeException("Could not install the map database.") }
+        prefs.edit().putLong("dbstamp", stamp).apply()
+    }
+
     suspend fun load() = withContext(Dispatchers.IO) {
         val dbFile = ctx.getDatabasePath("delhi.db")
         val stamp = ctx.packageManager.getPackageInfo(ctx.packageName, 0).lastUpdateTime
         val prefs = ctx.getSharedPreferences("noentry", Context.MODE_PRIVATE)
-        if (!dbFile.exists() || prefs.getLong("dbstamp", 0L) != stamp) {
-            dbFile.parentFile?.mkdirs()
-            ctx.assets.open("delhi.db").use { i -> dbFile.outputStream().use { o -> i.copyTo(o, 64 * 1024) } }
-            prefs.edit().putLong("dbstamp", stamp).apply()
+        if (!dbFile.exists() || prefs.getLong("dbstamp", 0L) != stamp) installDb(dbFile, stamp)
+        try {
+            loadGraph(dbFile)
+        } catch (e: Exception) {
+            // a damaged copy: reinstall once from the APK and try again
+            try { db?.close() } catch (_: Exception) {}
+            db = null
+            installDb(dbFile, stamp)
+            loadGraph(dbFile)
         }
-        db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+        loadRules()
+    }
 
+    private fun loadGraph(dbFile: File) {
+        val db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+        this.db = db
         val nn = db.rawQuery("SELECT COUNT(*) FROM node", null).use { it.moveToFirst(); it.getInt(0) }
+        val ns = db.rawQuery("SELECT COUNT(*) FROM seg", null).use { it.moveToFirst(); it.getInt(0) }
+        if (nn < 100 || ns < 100) throw IllegalStateException("Map database is empty or incomplete")
         val lat = DoubleArray(nn)
         val lon = DoubleArray(nn)
         db.rawQuery("SELECT lat, lon FROM node ORDER BY id", null).use { c ->
             var i = 0
-            while (c.moveToNext()) { lat[i] = c.getDouble(0); lon[i] = c.getDouble(1); i++ }
+            while (c.moveToNext() && i < nn) { lat[i] = c.getDouble(0); lon[i] = c.getDouble(1); i++ }
         }
-        val ns = db.rawQuery("SELECT COUNT(*) FROM seg", null).use { it.moveToFirst(); it.getInt(0) }
         val a = IntArray(ns); val b = IntArray(ns); val len = FloatArray(ns); val spd = IntArray(ns)
         val ow = ByteArray(ns); val fl = ByteArray(ns); val mh = FloatArray(ns); val mw = FloatArray(ns)
         db.rawQuery("SELECT a, b, len, speed, oneway, flags, maxh, maxw FROM seg ORDER BY id", null).use { c ->
             var i = 0
-            while (c.moveToNext()) {
+            while (c.moveToNext() && i < ns) {
                 a[i] = c.getInt(0); b[i] = c.getInt(1); len[i] = c.getFloat(2)
                 spd[i] = c.getInt(3).coerceIn(5, 80)
                 ow[i] = c.getInt(4).toByte(); fl[i] = c.getInt(5).toByte()
@@ -75,30 +119,91 @@ class Engine(private val ctx: Context) : SegStore {
             }
         }
         graph = Graph(lat, lon, a, b, len, spd, ow, fl, mh, mw)
-        zones = parseZones(ctx.assets.open("zones.json").bufferedReader().use { it.readText() })
     }
 
-    private fun parseZones(json: String): List<Zone> {
-        fun mins(s: String) = s.substring(0, 2).toInt() * 60 + s.substring(3, 5).toInt()
-        val arr = JSONArray(json)
-        return (0 until arr.length()).map { i ->
-            val o = arr.getJSONObject(i)
-            val poly = o.getJSONArray("polygon")
-            val vs = o.getJSONArray("vehicles")
-            val ds = o.optJSONArray("days")
-            Zone(
-                id = o.getLong("id"),
-                name = o.getString("name"),
-                ring = (0 until poly.length()).map { k -> poly.getJSONArray(k).let { LatLon(it.getDouble(1), it.getDouble(0)) } },
-                vehicles = (0 until vs.length()).map { vs.getString(it) }.toSet(),
-                days = if (ds == null) (1..7).toSet() else (0 until ds.length()).map { ds.getInt(it) }.toSet(),
-                startMin = mins(o.optString("start", "00:00")),
-                endMin = mins(o.optString("end", "23:59")),
-                validFrom = o.optInt("valid_from", 0),
-                validTo = o.optInt("valid_to", 99999999),
-                verified = o.optString("status", "verified") == "verified"
-            )
+    // ---- gazette rules ----
+
+    private fun mins(s: String): Int {
+        if (s == "24:00") return 1440
+        return s.substring(0, 2).toInt() * 60 + s.substring(3, 5).toInt()
+    }
+
+    /** Map segments whose name contains one of [names] and whose midpoint lies inside [bbox] (minLon,minLat,maxLon,maxLat). */
+    private fun matchSegs(names: List<String>, bbox: DoubleArray): IntArray {
+        val like = names.joinToString(" OR ") { "name LIKE ?" }
+        val args = names.map { "%${it.replace("%", "").replace("_", "")}%" }.toTypedArray()
+        val sql = "SELECT id FROM seg WHERE ($like) AND id IN " +
+            "(SELECT seg FROM seg_cell WHERE ${cellCond(bbox[1], bbox[3], bbox[0], bbox[2])})"
+        val out = ArrayList<Int>()
+        d().rawQuery(sql, args).use { c ->
+            while (c.moveToNext()) {
+                val s = c.getInt(0)
+                if (s < 0 || s >= graph.nSegs) continue
+                val la = (graph.nodeLat[graph.segA[s]] + graph.nodeLat[graph.segB[s]]) / 2
+                val lo = (graph.nodeLon[graph.segA[s]] + graph.nodeLon[graph.segB[s]]) / 2
+                if (la in bbox[1]..bbox[3] && lo in bbox[0]..bbox[2]) out.add(s)
+            }
         }
+        return out.toIntArray()
+    }
+
+    private fun loadRules() {
+        val warns = ArrayList<String>()
+        val zs = ArrayList<Zone>()
+        val ns = ArrayList<Notice>()
+        try {
+            val root = JSONObject(ctx.assets.open("rules.json").bufferedReader().use { it.readText() })
+            val na = root.optJSONArray("notices") ?: root.optJSONArray("notifications") ?: JSONArray()
+            for (i in 0 until na.length()) try {
+                val o = na.getJSONObject(i)
+                ns.add(Notice(
+                    o.getString("id"), o.optString("kind", "advisory"), o.getString("title"),
+                    o.optString("authority"), o.optString("ref"), o.optString("date"),
+                    o.optString("gazette"), o.optString("summary"), o.optString("url")
+                ))
+            } catch (e: Exception) { warns.add("A notification entry could not be read") }
+
+            var nextId = 1L
+            val ra = root.optJSONArray("rules") ?: JSONArray()
+            for (i in 0 until ra.length()) {
+                val o = ra.optJSONObject(i) ?: continue
+                val rid = o.optString("id", "rule$i")
+                try {
+                    val vs = o.getJSONArray("vehicles")
+                    val veh = (0 until vs.length()).map { vs.getString(it) }.toSet()
+                    val ds = o.optJSONArray("days")
+                    val days = if (ds == null) (1..7).toSet() else (0 until ds.length()).map { ds.getInt(it) }.toSet()
+                    val wa = o.getJSONArray("windows")
+                    val wins = (0 until wa.length()).map { k -> wa.getJSONArray(k).let { intArrayOf(mins(it.getString(0)), mins(it.getString(1))) } }
+                    val eff = o.optInt("effective", 0)
+                    val to = o.optInt("until", 99999999)
+                    val notif = o.optString("notification")
+                    fun box(a: JSONArray) = doubleArrayOf(a.getDouble(0), a.getDouble(1), a.getDouble(2), a.getDouble(3))
+                    if (o.optString("kind") == "area") {
+                        val areas = o.getJSONArray("areas")
+                        for (k in 0 until areas.length()) {
+                            val ao = areas.getJSONObject(k)
+                            val b = box(ao.getJSONArray("bbox"))
+                            val ring = listOf(LatLon(b[1], b[0]), LatLon(b[1], b[2]), LatLon(b[3], b[2]), LatLon(b[3], b[0]))
+                            zs.add(Zone(nextId++, rid, ao.getString("name"), notif, ring, null, veh, days, wins, eff, to))
+                        }
+                    } else {
+                        val na2 = o.getJSONArray("names")
+                        val names = (0 until na2.length()).map { na2.getString(it) }
+                        val segs = matchSegs(names, box(o.getJSONArray("bbox")))
+                        if (segs.isEmpty()) warns.add("${o.optString("name", rid)}: road not found on the map, so it is not applied to routing")
+                        zs.add(Zone(nextId++, rid, o.getString("name"), notif, emptyList(), segs, veh, days, wins, eff, to))
+                    }
+                } catch (e: Exception) {
+                    warns.add("Rule $rid could not be loaded (${e.message})")
+                }
+            }
+        } catch (e: Exception) {
+            warns.add("Gazette rules file could not be read (${e.message})")
+        }
+        zones = zs
+        notices = ns
+        ruleWarnings = warns
     }
 
     fun zonesFor(vclass: String): List<Zone> {
@@ -106,14 +211,40 @@ class Engine(private val ctx: Context) : SegStore {
         return zones.filter { it.isActive(vclass, c.dayIso, c.minute, c.date) }
     }
 
+    /** GeoJSON of the map segments covered by the active road rules (drawn in red). */
+    suspend fun zoneLines(active: List<Zone>): String? = withContext(Dispatchers.IO) {
+        val parts = ArrayList<String>()
+        for (z in active) {
+            val segs = z.segs ?: continue
+            val cached = lineCache.getOrPut(z.id) {
+                val sb = StringBuilder()
+                for (s in segs.take(2500)) {
+                    val pts = try { geom(s) } catch (e: Exception) { emptyList() }
+                    if (pts.size < 2) continue
+                    if (sb.isNotEmpty()) sb.append(',')
+                    sb.append('[')
+                    pts.forEachIndexed { i, p ->
+                        if (i > 0) sb.append(',')
+                        sb.append('[').append(p.lon).append(',').append(p.lat).append(']')
+                    }
+                    sb.append(']')
+                }
+                sb.toString()
+            }
+            if (cached.isNotEmpty()) parts.add(cached)
+        }
+        if (parts.isEmpty()) null
+        else """{"type":"Feature","properties":{},"geometry":{"type":"MultiLineString","coordinates":[${parts.joinToString(",")}]}}"""
+    }
+
     // ---- SegStore ----
     override fun geom(seg: Int): List<LatLon> =
-        db.rawQuery("SELECT geom FROM seg WHERE id=$seg", null).use {
+        d().rawQuery("SELECT geom FROM seg WHERE id=$seg", null).use {
             if (it.moveToFirst()) Geo.decodePolyline(it.getString(0), 6) else emptyList()
         }
 
     override fun name(seg: Int): String =
-        db.rawQuery("SELECT name FROM seg WHERE id=$seg", null).use {
+        d().rawQuery("SELECT name FROM seg WHERE id=$seg", null).use {
             if (it.moveToFirst()) (it.getString(0) ?: "") else ""
         }
 
@@ -123,7 +254,7 @@ class Engine(private val ctx: Context) : SegStore {
             val sql = "SELECT s.id, s.geom FROM seg s WHERE s.id IN " +
                 "(SELECT seg FROM seg_cell WHERE ${cellCond(p.lat - d, p.lat + d, p.lon - d, p.lon + d)})"
             var best: Snap? = null
-            db.rawQuery(sql, null).use { c ->
+            d().rawQuery(sql, null).use { c ->
                 while (c.moveToNext()) {
                     val seg = c.getInt(0)
                     if (!Router.segAllowed(graph, seg, prof)) continue
@@ -140,14 +271,21 @@ class Engine(private val ctx: Context) : SegStore {
     }
 
     suspend fun route(from: LatLon, to: LatLon, v: Vehicle): Route = withContext(Dispatchers.Default) {
-        val prof = Profile(v.key != "car", v.height, v.weight)
-        val so = snap(from, prof) ?: throw RuntimeException("Your location is outside the Delhi map data.")
+        val prof = Profile(true, v.height, v.weight, v.speedFactor)
+        val so = snap(from, prof) ?: throw RuntimeException("The start point is outside the Delhi map data.")
         val sd = snap(to, prof) ?: throw RuntimeException("That destination is outside the Delhi map data.")
         val active = zonesFor(v.key)
         val blocked = Planner.blockedSegs(graph, active, so.proj, sd.proj)
-        val pieces = Planner.plan(graph, this@Engine, prof, blocked, so, sd)
-            ?: throw RuntimeException("No route found. A no-entry rule or vehicle limit may be blocking every way.")
-        Planner.buildRoute(pieces, prof, active.map { Pair(it.id, it.name) })
+        var pieces = Planner.plan(graph, this@Engine, prof, blocked, so, sd)
+        var warn: String? = null
+        if (pieces == null && blocked != null && !blocked.isEmpty) {
+            pieces = Planner.plan(graph, this@Engine, prof, null, so, sd)
+            if (pieces != null) warn = "No route avoids every no-entry rule right now. This is the shortest route and it passes restricted roads."
+        }
+        if (pieces == null) throw RuntimeException("No route found. A vehicle height/weight limit or one-way roads may be blocking every way.")
+        val r = Planner.buildRoute(pieces, prof, active.map { Pair(it.id, it.name) })
+        r.warning = warn
+        r
     }
 
     // ---- search ----
@@ -155,7 +293,7 @@ class Engine(private val ctx: Context) : SegStore {
         val s = q.trim().lowercase(Locale.ROOT).replace("\\", "").replace("%", "").replace("_", "")
         if (s.isEmpty()) return@withContext emptyList()
         val out = ArrayList<Place>()
-        db.rawQuery(
+        d().rawQuery(
             "SELECT name, kind, lat, lon FROM place WHERE lname LIKE ? OR lname LIKE ? " +
                 "ORDER BY (lname LIKE ?) DESC, length(lname) LIMIT 8",
             arrayOf("$s%", "% $s%", "$s%")
@@ -177,7 +315,7 @@ class Engine(private val ctx: Context) : SegStore {
             val sql = "SELECT s.cls, s.geom FROM seg s WHERE s.cls <= $maxCls AND s.id IN " +
                 "(SELECT seg FROM seg_cell WHERE ${cellCond(minLat, maxLat, minLon, maxLon)}) LIMIT 20000"
             val major = StringBuilder(); val main = StringBuilder(); val local = StringBuilder()
-            db.rawQuery(sql, null).use { c ->
+            d().rawQuery(sql, null).use { c ->
                 while (c.moveToNext()) {
                     val sb = when (c.getInt(0)) { 0 -> major; 1 -> main; else -> local }
                     if (sb.isNotEmpty()) sb.append(',')

@@ -32,6 +32,7 @@ import org.maplibre.android.style.layers.PropertyFactory.fillOpacity
 import org.maplibre.android.style.layers.PropertyFactory.lineCap
 import org.maplibre.android.style.layers.PropertyFactory.lineColor
 import org.maplibre.android.style.layers.PropertyFactory.lineJoin
+import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
 import org.maplibre.android.style.layers.PropertyFactory.lineWidth
 import org.maplibre.android.style.sources.GeoJsonSource
 
@@ -50,6 +51,7 @@ class MapController {
     private var shownZones: List<Zone>? = null
     private var shownRoute: Route? = null
     private var shownRoads: Roads? = null
+    private var shownLines: String? = ""
     private var fitted: Route? = null
     private var centered = false
     private var lastRecenter = 0
@@ -72,6 +74,12 @@ class MapController {
             st.addSource(GeoJsonSource("zones", EMPTY_FC))
             st.addLayer(FillLayer("zones-fill", "zones").withProperties(fillColor("#EF4444"), fillOpacity(0.18f)))
             st.addLayer(LineLayer("zones-line", "zones").withProperties(lineColor("#DC2626"), lineWidth(2f)))
+            st.addSource(GeoJsonSource("zone-roads", EMPTY_FC))
+            st.addLayer(
+                LineLayer("zone-roads-line", "zone-roads").withProperties(
+                    lineColor("#DC2626"), lineWidth(5f), lineOpacity(0.85f), *round
+                )
+            )
             st.addSource(GeoJsonSource("route", EMPTY_FC))
             st.addLayer(
                 LineLayer("route-casing", "route").withProperties(
@@ -83,6 +91,20 @@ class MapController {
                 LineLayer("route-line", "route").withProperties(
                     lineColor("#2563EB"), lineWidth(6.5f),
                     lineCap(Property.LINE_CAP_ROUND), lineJoin(Property.LINE_JOIN_ROUND)
+                )
+            )
+            st.addSource(GeoJsonSource("origin", EMPTY_FC))
+            st.addLayer(
+                CircleLayer("origin-dot", "origin").withProperties(
+                    circleColor("#FFFFFF"), circleRadius(8f),
+                    circleStrokeColor("#2563EB"), circleStrokeWidth(4f)
+                )
+            )
+            st.addSource(GeoJsonSource("pin", EMPTY_FC))
+            st.addLayer(
+                CircleLayer("pin-dot", "pin").withProperties(
+                    circleColor("#F59E0B"), circleRadius(8f),
+                    circleStrokeColor("#FFFFFF"), circleStrokeWidth(3f)
                 )
             )
             st.addSource(GeoJsonSource("dest", EMPTY_FC))
@@ -103,6 +125,7 @@ class MapController {
             shownZones = null
             shownRoute = null
             shownRoads = null
+            shownLines = ""
             last?.let { render(it) }
             reportViewport(map, onViewport)
         }
@@ -138,6 +161,12 @@ class MapController {
             st.getSourceAs<GeoJsonSource>("route")?.setGeoJson(routeJson(s.route))
             shownRoute = s.route
         }
+        if (s.zoneLines != shownLines) {
+            st.getSourceAs<GeoJsonSource>("zone-roads")?.setGeoJson(s.zoneLines ?: EMPTY_FC)
+            shownLines = s.zoneLines
+        }
+        st.getSourceAs<GeoJsonSource>("origin")?.setGeoJson(pointJson(s.origin))
+        st.getSourceAs<GeoJsonSource>("pin")?.setGeoJson(pointJson(s.pin))
         st.getSourceAs<GeoJsonSource>("dest")?.setGeoJson(pointJson(s.dest))
         st.getSourceAs<GeoJsonSource>("me")?.setGeoJson(pointJson(s.me))
 
@@ -179,9 +208,10 @@ class MapController {
 
     private fun zonesJson(z: List<Zone>): String {
         val feats = JSONArray()
-        z.forEach { zone ->
+        z.filter { it.ring.size >= 3 }.forEach { zone ->
             val ring = JSONArray()
             zone.ring.forEach { ring.put(JSONArray().put(it.lon).put(it.lat)) }
+            zone.ring.first().let { ring.put(JSONArray().put(it.lon).put(it.lat)) }
             feats.put(
                 JSONObject().put("type", "Feature")
                     .put("properties", JSONObject().put("name", zone.name))
