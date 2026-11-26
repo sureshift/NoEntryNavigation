@@ -14,6 +14,8 @@ GENERIC = re.compile(r"^(download|view|click here|read more|more|pdf|english|hin
 FOLLOW = re.compile(r"/(advis|notif|circular|diversion|restrict|news)", re.I)
 DATE = re.compile(r"(\d{1,2})[-_.](\d{1,2})[-_.](20\d{2})")
 
+NOENTRY = re.compile(r"no[\s_-]*entry|\bNEP\b|goods|HGV|MGV|LGV|heavy|truck|diversion|restriction|plying", re.I)
+
 def clean(inner):
     t = html.unescape(re.sub(r"<[^>]+>", " ", inner))
     return re.sub(r"\s+", " ", t).strip()
@@ -39,6 +41,8 @@ def extract(page, base):
         if not is_doc and len(text) < 32:
             continue
         if not (is_doc or KEY.search(text)):
+            continue
+        if not NOENTRY.search(text + " " + fname):
             continue
         m = DATE.search(url) or DATE.search(text)
         d = None
@@ -70,6 +74,8 @@ def main(path="feed/updates.json"):
     # drop entries from an earlier, cruder version of this script (menu links without documents)
     adv = [x for x in feed.setdefault("advisories", []) if x.get("url", "").startswith("https://") and "#" not in x["url"]
            and not (x["id"].startswith("DTP-") and x.get("title") in ("Traffic Advisory", "No Entry Permission", "Notifications", "Notifications & Circulars"))]
+    adv = [x for x in adv if NOENTRY.search(x.get("title", "") + " " + x["url"].rsplit("/", 1)[-1].replace("_", " "))]
+    feed["advisories"] = adv
     feed["advisories"] = adv
     have = {x["id"] for x in adv}
     today = datetime.datetime.utcnow().date().isoformat()
