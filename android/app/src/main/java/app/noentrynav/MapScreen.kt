@@ -35,14 +35,10 @@ import org.maplibre.android.style.layers.PropertyFactory.lineJoin
 import org.maplibre.android.style.layers.PropertyFactory.lineWidth
 import org.maplibre.android.style.sources.GeoJsonSource
 
-// OSM raster tiles for development. For production, self-host tiles (Protomaps/OpenMapTiles)
-// and point this at your own tile server: the public OSM tile servers are not meant for heavy app traffic.
+// Fully offline: plain background, roads are drawn from the on-device database.
 private const val STYLE_JSON = """
-{"version":8,
- "sources":{"osm":{"type":"raster","tileSize":256,"maxzoom":19,
-   "tiles":["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-   "attribution":"© OpenStreetMap contributors"}},
- "layers":[{"id":"osm","type":"raster","source":"osm"}]}
+{"version":8,"sources":{},
+ "layers":[{"id":"bg","type":"background","paint":{"background-color":"#EFEBE4"}}]}
 """
 
 private const val EMPTY_FC = """{"type":"FeatureCollection","features":[]}"""
@@ -53,13 +49,25 @@ class MapController {
     private var last: UiState? = null
     private var shownZones: List<Zone>? = null
     private var shownRoute: Route? = null
+    private var shownRoads: Roads? = null
     private var fitted: Route? = null
     private var centered = false
 
-    fun attach(map: MapLibreMap, onLongPress: (LatLon) -> Unit) {
+    fun attach(map: MapLibreMap, onLongPress: (LatLon) -> Unit, onViewport: (Double, Double, Double, Double, Double) -> Unit) {
         this.map = map
         map.cameraPosition = CameraPosition.Builder().target(LatLng(28.6139, 77.2090)).zoom(10.5).build()
         map.setStyle(Style.Builder().fromJson(STYLE_JSON)) { st ->
+            // offline roads: casings first, then fills, major roads on top
+            st.addSource(GeoJsonSource("roads-local", EMPTY_FC))
+            st.addSource(GeoJsonSource("roads-main", EMPTY_FC))
+            st.addSource(GeoJsonSource("roads-major", EMPTY_FC))
+            val round = arrayOf(lineCap(Property.LINE_CAP_ROUND), lineJoin(Property.LINE_JOIN_ROUND))
+            st.addLayer(LineLayer("rc-local", "roads-local").withProperties(lineColor("#CFC7BC"), lineWidth(4f), *round))
+            st.addLayer(LineLayer("rc-main", "roads-main").withProperties(lineColor("#B9AFA2"), lineWidth(6.5f), *round))
+            st.addLayer(LineLayer("rc-major", "roads-major").withProperties(lineColor("#C98A1B"), lineWidth(8f), *round))
+            st.addLayer(LineLayer("rf-local", "roads-local").withProperties(lineColor("#FFFFFF"), lineWidth(2.4f), *round))
+            st.addLayer(LineLayer("rf-main", "roads-main").withProperties(lineColor("#FFF3D6"), lineWidth(4.5f), *round))
+            st.addLayer(LineLayer("rf-major", "roads-major").withProperties(lineColor("#FFC24A"), lineWidth(6f), *round))
             st.addSource(GeoJsonSource("zones", EMPTY_FC))
             st.addLayer(FillLayer("zones-fill", "zones").withProperties(fillColor("#E53935"), fillOpacity(0.25f)))
             st.addLayer(LineLayer("zones-line", "zones").withProperties(lineColor("#B71C1C"), lineWidth(1.5f)))
@@ -93,12 +101,21 @@ class MapController {
             style = st
             shownZones = null
             shownRoute = null
+            shownRoads = null
             last?.let { render(it) }
+            reportViewport(map, onViewport)
         }
+        map.addOnCameraIdleListener { reportViewport(map, onViewport) }
         map.addOnMapLongClickListener { ll ->
             onLongPress(LatLon(ll.latitude, ll.longitude))
             true
         }
+    }
+
+    private fun reportViewport(map: MapLibreMap, cb: (Double, Double, Double, Double, Double) -> Unit) {
+        if (style == null) return
+        val b = map.projection.visibleRegion.latLngBounds
+        cb(b.latitudeSouth, b.longitudeWest, b.latitudeNorth, b.longitudeEast, map.cameraPosition.zoom)
     }
 
     fun render(s: UiState) {
@@ -109,6 +126,12 @@ class MapController {
         if (s.zones !== shownZones) {
             st.getSourceAs<GeoJsonSource>("zones")?.setGeoJson(zonesJson(s.zones))
             shownZones = s.zones
+        }
+        if (s.roads !== shownRoads && s.roads != null) {
+            st.getSourceAs<GeoJsonSource>("roads-major")?.setGeoJson(s.roads.major)
+            st.getSourceAs<GeoJsonSource>("roads-main")?.setGeoJson(s.roads.main)
+            st.getSourceAs<GeoJsonSource>("roads-local")?.setGeoJson(s.roads.local)
+            shownRoads = s.roads
         }
         if (s.route !== shownRoute) {
             st.getSourceAs<GeoJsonSource>("route")?.setGeoJson(routeJson(s.route))
@@ -173,7 +196,12 @@ class MapController {
 }
 
 @Composable
-fun MapViewHost(state: UiState, controller: MapController, onLongPress: (LatLon) -> Unit) {
+fun MapViewHost(
+    state: UiState,
+    controller: MapController,
+    onLongPress: (LatLon) -> Unit,
+    onViewport: (Double, Double, Double, Double, Double) -> Unit
+) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
     val lifecycle = (context as ComponentActivity).lifecycle
@@ -196,7 +224,7 @@ fun MapViewHost(state: UiState, controller: MapController, onLongPress: (LatLon)
 
     AndroidView(
         factory = {
-            mapView.also { mv -> mv.getMapAsync { map -> controller.attach(map, onLongPress) } }
+            mapView.also { mv -> mv.getMapAsync { map -> controller.attach(map, onLongPress, onViewport) } }
         },
         modifier = Modifier.fillMaxSize(),
         update = { controller.render(state) }

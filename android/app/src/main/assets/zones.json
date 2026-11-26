@@ -1,0 +1,15 @@
+[
+  {
+    "id": 1,
+    "name": "SAMPLE: Connaught Place truck ban (replace with real notified rules)",
+    "vehicles": ["truck", "lcv"],
+    "days": [1, 2, 3, 4, 5, 6, 7],
+    "start": "07:00",
+    "end": "22:00",
+    "valid_from": 0,
+    "valid_to": 99999999,
+    "status": "verified",
+    "source": "sample",
+    "polygon": [[77.2000, 28.6250], [77.2250, 28.6250], [77.2250, 28.6400], [77.2000, 28.6400]]
+  }
+]

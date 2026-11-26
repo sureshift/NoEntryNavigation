@@ -18,18 +18,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-const val DEFAULT_SERVER = "http://10.0.2.2:8000"
-
 class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnInitListener {
 
-    private val prefs = app.getSharedPreferences("noentry", Context.MODE_PRIVATE)
-    private val _s = MutableStateFlow(
-        UiState(serverUrl = prefs.getString("server", DEFAULT_SERVER) ?: DEFAULT_SERVER)
-    )
+    private val _s = MutableStateFlow(UiState(message = "Loading offline Delhi map… (first start takes a minute)"))
     val state: StateFlow<UiState> = _s
     val mapController = MapController()
 
-    private val api = Api { _s.value.serverUrl.trim().trimEnd('/') }
+    private val engine = Engine(app)
+    private var roadsJob: kotlinx.coroutines.Job? = null
 
     private var tts: TextToSpeech? = TextToSpeech(app, this)
     private var ttsReady = false
@@ -42,7 +38,28 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
     private var locStarted = false
 
     init {
-        refreshZones()
+        viewModelScope.launch {
+            try {
+                engine.load()
+                _s.update { it.copy(ready = true, message = null, zones = engine.zonesFor(it.vehicle.key)) }
+            } catch (e: Exception) {
+                _s.update { it.copy(message = "Map data could not be loaded: ${e.message}") }
+            }
+        }
+    }
+
+    /** Called by the map when the camera stops moving: draw the roads that are in view. */
+    fun onViewport(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double, zoom: Double) {
+        if (!_s.value.ready || zoom < 9.0) return
+        roadsJob?.cancel()
+        roadsJob = viewModelScope.launch {
+            try {
+                val padLat = (maxLat - minLat) * 0.2
+                val padLon = (maxLon - minLon) * 0.2
+                val r = engine.roads(minLat - padLat, minLon - padLon, maxLat + padLat, maxLon + padLon, zoom)
+                _s.update { it.copy(roads = r) }
+            } catch (e: Exception) { /* keep previous roads */ }
+        }
     }
 
     // ---------- TTS ----------
@@ -103,14 +120,6 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
     }
 
     // ---------- UI actions ----------
-    fun openSettings(show: Boolean) = _s.update { it.copy(showSettings = show) }
-
-    fun saveServer(url: String) {
-        prefs.edit().putString("server", url.trim()).apply()
-        _s.update { it.copy(serverUrl = url.trim(), showSettings = false, message = null) }
-        refreshZones()
-    }
-
     fun setVehicle(v: Vehicle) {
         _s.update { it.copy(vehicle = v, route = null) }
         refreshZones()
@@ -122,7 +131,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
         viewModelScope.launch {
             _s.update { it.copy(busy = true, message = null) }
             try {
-                val r = api.search(q.trim())
+                val r = engine.search(q.trim())
                 _s.update {
                     it.copy(busy = false, results = r, message = if (r.isEmpty()) "No places found in Delhi NCR." else null)
                 }
@@ -148,19 +157,14 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
     }
 
     fun refreshZones() {
-        viewModelScope.launch {
-            try {
-                val z = api.zones(_s.value.vehicle.key)
-                _s.update { it.copy(zones = z) }
-            } catch (e: Exception) {
-                _s.update { it.copy(message = "Cannot reach server (${_s.value.serverUrl}). Tap Server to set it.") }
-            }
-        }
+        if (!_s.value.ready) return
+        _s.update { it.copy(zones = engine.zonesFor(it.vehicle.key)) }
     }
 
     fun requestRoute(auto: Boolean = false) {
         val st = _s.value
         val dest = st.dest ?: return
+        if (!st.ready) return
         val me = st.me
         if (me == null) {
             _s.update { it.copy(message = "Waiting for GPS fix…") }
@@ -169,7 +173,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
         viewModelScope.launch {
             _s.update { it.copy(busy = true, message = null) }
             try {
-                val r = api.route(me, dest, _s.value.vehicle)
+                val r = engine.route(me, dest, _s.value.vehicle)
                 progressIdx = 0
                 offCount = 0
                 announced.clear()
@@ -262,10 +266,10 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
     /** Every 2 min: re-fetch active zones; if a zone that started after routing blocks the rest of the route, reroute. */
     private fun maybeCheckZones() {
         val now = SystemClock.elapsedRealtime()
-        if (now - lastZoneCheck < 120_000) return
+        if (now - lastZoneCheck < 60_000) return
         lastZoneCheck = now
         viewModelScope.launch {
-            val zs = try { api.zones(_s.value.vehicle.key) } catch (e: Exception) { return@launch }
+            val zs = engine.zonesFor(_s.value.vehicle.key)
             _s.update { it.copy(zones = zs) }
             val r = _s.value.route ?: return@launch
             val appliedIds = r.applied.map { it.first }.toSet()
@@ -273,7 +277,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app), TextToSpeech.OnIni
                 z.id !in appliedIds && Geo.routeHitsPolygon(r.points, progressIdx, z.ring)
             }
             if (hit != null) {
-                speak("No entry zone ahead, ${hit.name}. Recalculating.")
+                speak("No entry zone ahead. Recalculating.")
                 lastReroute = SystemClock.elapsedRealtime()
                 requestRoute(auto = true)
             }

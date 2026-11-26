@@ -12,6 +12,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # ---------- 1. Offline Delhi map data (roads, places) ----------
+      - name: Install osmium-tool
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install osmium
+      - name: Cache OSM download
+        uses: actions/cache@v4
+        with:
+          path: data/north.osm.pbf
+          key: osm-north-zone-v1
+      - name: Download India north-zone extract
+        run: |
+          mkdir -p data
+          [ -f data/north.osm.pbf ] || curl -L --fail -o data/north.osm.pbf \
+            https://download.geofabrik.de/asia/india/northern-zone-latest.osm.pbf
+      - name: Clip to Delhi
+        run: osmium extract --bbox 76.83,28.40,77.35,28.89 --strategy complete_ways data/north.osm.pbf -o data/delhi.osm.pbf --overwrite
+      - name: Build offline database
+        run: python tools/build_data.py data/delhi.osm.pbf android/app/src/main/assets/delhi.db
+
+      # ---------- 2. Android app ----------
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

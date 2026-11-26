@@ -2,7 +2,26 @@ package app.noentrynav
 
 data class LatLon(val lat: Double, val lon: Double)
 data class Maneuver(val text: String, val verbal: String, val beginIdx: Int, val lengthKm: Double)
-data class Zone(val id: Long, val name: String, val ring: List<LatLon>)
+data class Zone(
+    val id: Long,
+    val name: String,
+    val ring: List<LatLon>,
+    val vehicles: Set<String> = emptySet(),
+    val days: Set<Int> = setOf(1, 2, 3, 4, 5, 6, 7),   // ISO: 1 = Monday .. 7 = Sunday
+    val startMin: Int = 0,
+    val endMin: Int = 1439,                            // end < start means the window crosses midnight
+    val validFrom: Int = 0,                            // yyyymmdd
+    val validTo: Int = 99999999,
+    val verified: Boolean = true
+) {
+    fun isActive(vclass: String, dayIso: Int, minute: Int, date: Int): Boolean {
+        if (!verified || vclass !in vehicles) return false
+        if (date < validFrom || date > validTo) return false
+        if (startMin <= endMin) return dayIso in days && minute in startMin..endMin
+        val prev = if (dayIso == 1) 7 else dayIso - 1
+        return (dayIso in days && minute >= startMin) || (prev in days && minute <= endMin)
+    }
+}
 data class Place(val name: String, val pos: LatLon)
 data class Vehicle(val key: String, val label: String, val height: Double, val weight: Double, val length: Double)
 
@@ -36,6 +55,9 @@ data class UiState(
     val nextDistM: Double = 0.0,
     val remainingM: Double = 0.0,
     val results: List<Place> = emptyList(),
-    val serverUrl: String = "",
-    val showSettings: Boolean = false
+    val ready: Boolean = false,
+    val roads: Roads? = null
 )
+
+/** GeoJSON MultiLineString features for the offline road layers (major, main, local). */
+class Roads(val major: String, val main: String, val local: String)

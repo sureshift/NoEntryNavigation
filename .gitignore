@@ -1,7 +1,7 @@
 data/
-.env
 build/
 .gradle/
 local.properties
 *.pyc
 __pycache__/
+android/app/src/main/assets/delhi.db

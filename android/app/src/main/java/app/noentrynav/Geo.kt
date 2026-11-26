@@ -89,4 +89,21 @@ object Geo {
         }
         return out
     }
+
+    fun bearing(a: LatLon, b: LatLon): Double {
+        val y = sin(Math.toRadians(b.lon - a.lon)) * cos(Math.toRadians(b.lat))
+        val x = cos(Math.toRadians(a.lat)) * sin(Math.toRadians(b.lat)) -
+            sin(Math.toRadians(a.lat)) * cos(Math.toRadians(b.lat)) * cos(Math.toRadians(b.lon - a.lon))
+        return (Math.toDegrees(atan2(y, x)) + 360.0) % 360.0
+    }
+
+    /** Signed turn angle in [-180,180): positive = right turn. */
+    fun angleDiff(from: Double, to: Double): Double = ((to - from + 540.0) % 360.0) - 180.0
+
+    /** Fast flat-earth distance in metres, fine for short ranges. */
+    fun flat(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val dy = (lat2 - lat1) * 110574.0
+        val dx = (lon2 - lon1) * 111320.0 * cos(Math.toRadians((lat1 + lat2) / 2))
+        return sqrt(dx * dx + dy * dy)
+    }
 }

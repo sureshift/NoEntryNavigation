@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -26,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -82,7 +80,7 @@ fun MainScreen(vm: NavViewModel) {
     var query by remember { mutableStateOf("") }
 
     Box(Modifier.fillMaxSize()) {
-        MapViewHost(s, vm.mapController) { vm.setDestination(it) }
+        MapViewHost(s, vm.mapController, { vm.setDestination(it) }, vm::onViewport)
 
         // ---- top ----
         Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(10.dp)) {
@@ -100,12 +98,13 @@ fun MainScreen(vm: NavViewModel) {
                             value = query,
                             onValueChange = { query = it },
                             modifier = Modifier.weight(1f).padding(6.dp),
-                            placeholder = { Text("Search destination in Delhi NCR") },
+                            placeholder = { Text(if (s.ready) "Search a place or street in Delhi" else "Loading map…") },
+                            enabled = s.ready,
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                             keyboardActions = KeyboardActions(onSearch = { vm.search(query) })
                         )
-                        TextButton(onClick = { vm.openSettings(true) }) { Text("Server") }
+                        Text("Offline", fontSize = 12.sp, color = Color(0xFF2E7D32), modifier = Modifier.padding(end = 10.dp))
                     }
                 }
                 if (s.results.isNotEmpty()) {
@@ -172,26 +171,11 @@ fun MainScreen(vm: NavViewModel) {
                 }
                 s.message?.let { Text(it, color = Color(0xFFB71C1C), fontSize = 13.sp) }
                 Text(
-                    "Red areas = no-entry for ${s.vehicle.label} right now · Map © OpenStreetMap contributors",
+                    "Red = no-entry for ${s.vehicle.label} right now · Map data © OpenStreetMap contributors",
                     fontSize = 11.sp, color = Color.Gray
                 )
             }
         }
 
-        if (s.showSettings) {
-            var url by remember { mutableStateOf(s.serverUrl) }
-            AlertDialog(
-                onDismissRequest = { vm.openSettings(false) },
-                title = { Text("Server URL") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = url, onValueChange = { url = it }, singleLine = true)
-                        Text("Your NoEntry API, e.g. https://nav.yourdomain.in or http://192.168.1.10:8000", fontSize = 12.sp)
-                    }
-                },
-                confirmButton = { TextButton(onClick = { vm.saveServer(url) }) { Text("Save") } },
-                dismissButton = { TextButton(onClick = { vm.openSettings(false) }) { Text("Cancel") } }
-            )
-        }
     }
 }

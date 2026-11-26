@@ -1,23 +1,24 @@
-# NoEntry Nav (Delhi)
+# NoEntry Nav — offline Delhi navigation for trucks, LCVs and cars
 
-1. `sudo apt install osmium-tool && ./scripts/prepare-delhi.sh`
-2. `cp .env.example .env && docker compose up -d --build`
-3. Wait for tiles: `docker logs -f ne_valhalla` (Delhi: a few minutes)
-4. Test:
-```
-curl -s localhost:8000/zones/active?vehicle_class=truck
-curl -s -X POST localhost:8000/route -H 'content-type: application/json' -d '{
- "origin":{"lat":28.5562,"lon":77.1000},
- "destination":{"lat":28.6692,"lon":77.2300},
- "vehicle_class":"truck","depart_at":"2026-11-26T09:00:00"}' | head -c 600
-```
-Look for `applied_restrictions` in the response and confirm the route avoids the sample CP polygon.
+Everything runs on the phone. No server, no internet permission.
 
-## Android app (android/)
-Kotlin + Compose + MapLibre. Built by GitHub Actions (no Android Studio needed):
-1. Create a GitHub repo, push this whole folder to `main`.
-2. Actions tab -> "Build APK" runs automatically (about 5-8 min). 
-3. Download `app-debug.apk` from the run's Artifacts or from Releases, copy to the phone, install (allow "install unknown apps").
-4. In the app tap **Server**, enter your API URL (Cloudflare tunnel https URL, or http://LAN-IP:8000 on same Wi-Fi).
+- Roads, places and street names: built from OpenStreetMap into `delhi.db` and bundled in the APK
+- Routing: on-device A* that respects one-ways, HGV bans, height/weight limits and your no-entry zones
+- No-entry rules: `android/app/src/main/assets/zones.json` (edit, push, new APK is built)
 
-Local build alternative: open `android/` in Android Studio and Run.
+## Get the APK
+Push to `main`. GitHub Actions downloads OSM data, builds the database and the APK (about 10-15 min).
+Download `app-debug.apk` from Releases or the run's Artifacts and install it.
+
+## Edit no-entry rules
+`zones.json` entries: name, vehicles (`truck`, `lcv`, `car`), days (1=Mon..7=Sun), start/end (24h, IST,
+end earlier than start = crosses midnight), valid_from/valid_to (yyyymmdd), status (`verified` to enforce), polygon ([lon,lat] points).
+The shipped zone is a SAMPLE. Replace it with real Delhi Traffic Police notified rules.
+
+## Change the area
+Edit the `--bbox` in `.github/workflows/build-apk.yml` (min_lon,min_lat,max_lon,max_lat).
+
+## Known limits
+- Turn restrictions (no-right-turn etc.) from OSM are not used yet
+- Map shows roads only, no labels or buildings
+- Debug-signed APK (not Play Store ready)
