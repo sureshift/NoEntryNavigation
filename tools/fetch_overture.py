@@ -17,13 +17,13 @@ def main(out):
     con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
     x0, y0, x1, y1 = BBOX
     rows = con.execute(f"""
-        SELECT names.primary AS name, categories.primary AS cat,
-               ST_Y(geometry) AS lat, ST_X(geometry) AS lon,
-               addresses[1].freeform AS street, addresses[1].locality AS loc, addresses[1].postcode AS pc,
-               phones[1] AS phone, confidence
-        FROM read_parquet('s3://overturemaps-us-west-2/release/{rel}/theme=places/type=place/*', hive_partitioning=1)
-        WHERE bbox.xmin BETWEEN {x0} AND {x1} AND bbox.ymin BETWEEN {y0} AND {y1}
-          AND names.primary IS NOT NULL AND confidence >= 0.6
+        SELECT p.names.primary AS name, p.categories.primary AS cat,
+               ST_Y(p.geometry) AS lat, ST_X(p.geometry) AS lon,
+               p.addresses[1].freeform AS street, p.addresses[1].locality AS loc, p.addresses[1].postcode AS pc,
+               p.phones[1] AS phone, p.confidence
+        FROM read_parquet('s3://overturemaps-us-west-2/release/{rel}/theme=places/type=place/*', hive_partitioning=1) AS p
+        WHERE p.bbox.xmin BETWEEN {x0} AND {x1} AND p.bbox.ymin BETWEEN {y0} AND {y1}
+          AND p.names.primary IS NOT NULL AND p.confidence >= 0.6
     """).fetchall()
     with open(out, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
