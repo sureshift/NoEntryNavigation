@@ -1,0 +1,58 @@
+name: Build city map packs
+on:
+  workflow_dispatch:
+    inputs:
+      zone:
+        description: "Zone to build (all, northern-zone, central-zone, eastern-zone, north-eastern-zone, southern-zone, western-zone)"
+        default: "all"
+      only:
+        description: "Optional comma list of region ids (e.g. mumbai,pune)"
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  packs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        zone: [northern-zone, central-zone, eastern-zone, north-eastern-zone, southern-zone, western-zone]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip other zones
+        id: gate
+        run: |
+          if [ "${{ github.event.inputs.zone }}" = "all" ] || [ "${{ github.event.inputs.zone }}" = "${{ matrix.zone }}" ]; then echo "run=1" >> $GITHUB_OUTPUT; else echo "run=0" >> $GITHUB_OUTPUT; fi
+      - name: Install tools
+        if: steps.gate.outputs.run == '1'
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool && pip install osmium duckdb
+      - name: Build packs
+        if: steps.gate.outputs.run == '1'
+        run: python tools/build_packs.py "${{ matrix.zone }}" out "${{ github.event.inputs.only }}"
+      - name: Upload to the packs release
+        if: steps.gate.outputs.run == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view packs >/dev/null 2>&1 || gh release create packs --title "Map packs" --notes "City map packs downloaded by the app. Do not delete."
+          ls out/*.gz out/*.json 2>/dev/null | xargs -r gh release upload packs --clobber
+
+  catalog:
+    needs: packs
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild feed/catalog.json from the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p meta
+          gh release download packs --pattern '*.json' --dir meta --clobber || true
+          python tools/make_catalog.py meta feed/catalog.json "https://github.com/${{ github.repository }}/releases/download/packs"
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add feed/catalog.json
+          git diff --cached --quiet || (git commit -m "Update map pack catalog" && git pull --rebase -q && git push)

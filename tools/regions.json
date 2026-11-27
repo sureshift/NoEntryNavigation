@@ -1,0 +1,550 @@
+[
+ {
+  "id": "delhi-ncr",
+  "name": "Delhi NCR (Delhi, Gurugram, Noida, Ghaziabad)",
+  "state": "Delhi",
+  "zone": "northern-zone",
+  "bbox": [
+   76.8,
+   28.3,
+   77.62,
+   28.9
+  ],
+  "also": [
+   "central-zone"
+  ]
+ },
+ {
+  "id": "mumbai",
+  "name": "Mumbai & MMR",
+  "state": "Maharashtra",
+  "zone": "western-zone",
+  "bbox": [
+   72.75,
+   18.85,
+   73.25,
+   19.45
+  ],
+  "also": []
+ },
+ {
+  "id": "pune",
+  "name": "Pune",
+  "state": "Maharashtra",
+  "zone": "western-zone",
+  "bbox": [
+   73.7,
+   18.4,
+   74.05,
+   18.7
+  ],
+  "also": []
+ },
+ {
+  "id": "nagpur",
+  "name": "Nagpur",
+  "state": "Maharashtra",
+  "zone": "western-zone",
+  "bbox": [
+   78.95,
+   21.05,
+   79.25,
+   21.25
+  ],
+  "also": []
+ },
+ {
+  "id": "nashik",
+  "name": "Nashik",
+  "state": "Maharashtra",
+  "zone": "western-zone",
+  "bbox": [
+   73.7,
+   19.9,
+   73.9,
+   20.1
+  ],
+  "also": []
+ },
+ {
+  "id": "ahmedabad",
+  "name": "Ahmedabad",
+  "state": "Gujarat",
+  "zone": "western-zone",
+  "bbox": [
+   72.45,
+   22.9,
+   72.8,
+   23.2
+  ],
+  "also": []
+ },
+ {
+  "id": "surat",
+  "name": "Surat",
+  "state": "Gujarat",
+  "zone": "western-zone",
+  "bbox": [
+   72.7,
+   21.05,
+   72.95,
+   21.3
+  ],
+  "also": []
+ },
+ {
+  "id": "vadodara",
+  "name": "Vadodara",
+  "state": "Gujarat",
+  "zone": "western-zone",
+  "bbox": [
+   73.05,
+   22.2,
+   73.3,
+   22.4
+  ],
+  "also": []
+ },
+ {
+  "id": "rajkot",
+  "name": "Rajkot",
+  "state": "Gujarat",
+  "zone": "western-zone",
+  "bbox": [
+   70.7,
+   22.2,
+   70.9,
+   22.35
+  ],
+  "also": []
+ },
+ {
+  "id": "goa",
+  "name": "Goa",
+  "state": "Goa",
+  "zone": "western-zone",
+  "bbox": [
+   73.65,
+   14.9,
+   74.35,
+   15.8
+  ],
+  "also": []
+ },
+ {
+  "id": "jaipur",
+  "name": "Jaipur",
+  "state": "Rajasthan",
+  "zone": "northern-zone",
+  "bbox": [
+   75.65,
+   26.75,
+   76.0,
+   27.05
+  ],
+  "also": []
+ },
+ {
+  "id": "jodhpur",
+  "name": "Jodhpur",
+  "state": "Rajasthan",
+  "zone": "northern-zone",
+  "bbox": [
+   72.95,
+   26.2,
+   73.1,
+   26.35
+  ],
+  "also": []
+ },
+ {
+  "id": "udaipur",
+  "name": "Udaipur",
+  "state": "Rajasthan",
+  "zone": "northern-zone",
+  "bbox": [
+   73.6,
+   24.52,
+   73.8,
+   24.65
+  ],
+  "also": []
+ },
+ {
+  "id": "chandigarh",
+  "name": "Chandigarh Tricity",
+  "state": "Chandigarh",
+  "zone": "northern-zone",
+  "bbox": [
+   76.6,
+   30.6,
+   76.95,
+   30.82
+  ],
+  "also": []
+ },
+ {
+  "id": "ludhiana",
+  "name": "Ludhiana",
+  "state": "Punjab",
+  "zone": "northern-zone",
+  "bbox": [
+   75.75,
+   30.85,
+   75.95,
+   30.97
+  ],
+  "also": []
+ },
+ {
+  "id": "amritsar",
+  "name": "Amritsar",
+  "state": "Punjab",
+  "zone": "northern-zone",
+  "bbox": [
+   74.8,
+   31.58,
+   74.95,
+   31.7
+  ],
+  "also": []
+ },
+ {
+  "id": "dehradun",
+  "name": "Dehradun",
+  "state": "Uttarakhand",
+  "zone": "central-zone",
+  "bbox": [
+   77.95,
+   30.25,
+   78.15,
+   30.4
+  ],
+  "also": []
+ },
+ {
+  "id": "lucknow",
+  "name": "Lucknow",
+  "state": "Uttar Pradesh",
+  "zone": "central-zone",
+  "bbox": [
+   80.85,
+   26.7,
+   81.1,
+   26.95
+  ],
+  "also": []
+ },
+ {
+  "id": "kanpur",
+  "name": "Kanpur",
+  "state": "Uttar Pradesh",
+  "zone": "central-zone",
+  "bbox": [
+   80.25,
+   26.35,
+   80.45,
+   26.55
+  ],
+  "also": []
+ },
+ {
+  "id": "agra",
+  "name": "Agra",
+  "state": "Uttar Pradesh",
+  "zone": "central-zone",
+  "bbox": [
+   77.9,
+   27.1,
+   78.1,
+   27.25
+  ],
+  "also": []
+ },
+ {
+  "id": "varanasi",
+  "name": "Varanasi",
+  "state": "Uttar Pradesh",
+  "zone": "central-zone",
+  "bbox": [
+   82.9,
+   25.25,
+   83.1,
+   25.4
+  ],
+  "also": []
+ },
+ {
+  "id": "prayagraj",
+  "name": "Prayagraj",
+  "state": "Uttar Pradesh",
+  "zone": "central-zone",
+  "bbox": [
+   81.75,
+   25.35,
+   81.95,
+   25.55
+  ],
+  "also": []
+ },
+ {
+  "id": "meerut",
+  "name": "Meerut",
+  "state": "Uttar Pradesh",
+  "zone": "central-zone",
+  "bbox": [
+   77.6,
+   28.9,
+   77.8,
+   29.1
+  ],
+  "also": []
+ },
+ {
+  "id": "bhopal",
+  "name": "Bhopal",
+  "state": "Madhya Pradesh",
+  "zone": "central-zone",
+  "bbox": [
+   77.3,
+   23.15,
+   77.55,
+   23.35
+  ],
+  "also": []
+ },
+ {
+  "id": "indore",
+  "name": "Indore",
+  "state": "Madhya Pradesh",
+  "zone": "central-zone",
+  "bbox": [
+   75.75,
+   22.6,
+   75.95,
+   22.8
+  ],
+  "also": []
+ },
+ {
+  "id": "raipur",
+  "name": "Raipur",
+  "state": "Chhattisgarh",
+  "zone": "central-zone",
+  "bbox": [
+   81.55,
+   21.15,
+   81.75,
+   21.35
+  ],
+  "also": []
+ },
+ {
+  "id": "patna",
+  "name": "Patna",
+  "state": "Bihar",
+  "zone": "eastern-zone",
+  "bbox": [
+   85.0,
+   25.5,
+   85.3,
+   25.7
+  ],
+  "also": []
+ },
+ {
+  "id": "ranchi",
+  "name": "Ranchi",
+  "state": "Jharkhand",
+  "zone": "eastern-zone",
+  "bbox": [
+   85.2,
+   23.3,
+   85.45,
+   23.45
+  ],
+  "also": []
+ },
+ {
+  "id": "kolkata",
+  "name": "Kolkata",
+  "state": "West Bengal",
+  "zone": "eastern-zone",
+  "bbox": [
+   88.2,
+   22.4,
+   88.55,
+   22.75
+  ],
+  "also": []
+ },
+ {
+  "id": "bhubaneswar",
+  "name": "Bhubaneswar",
+  "state": "Odisha",
+  "zone": "eastern-zone",
+  "bbox": [
+   85.7,
+   20.2,
+   85.9,
+   20.4
+  ],
+  "also": []
+ },
+ {
+  "id": "guwahati",
+  "name": "Guwahati",
+  "state": "Assam",
+  "zone": "north-eastern-zone",
+  "bbox": [
+   91.6,
+   26.08,
+   91.9,
+   26.25
+  ],
+  "also": []
+ },
+ {
+  "id": "bengaluru",
+  "name": "Bengaluru",
+  "state": "Karnataka",
+  "zone": "southern-zone",
+  "bbox": [
+   77.4,
+   12.8,
+   77.8,
+   13.15
+  ],
+  "also": []
+ },
+ {
+  "id": "mysuru",
+  "name": "Mysuru",
+  "state": "Karnataka",
+  "zone": "southern-zone",
+  "bbox": [
+   76.55,
+   12.25,
+   76.75,
+   12.4
+  ],
+  "also": []
+ },
+ {
+  "id": "mangaluru",
+  "name": "Mangaluru",
+  "state": "Karnataka",
+  "zone": "southern-zone",
+  "bbox": [
+   74.8,
+   12.85,
+   74.95,
+   12.95
+  ],
+  "also": []
+ },
+ {
+  "id": "hyderabad",
+  "name": "Hyderabad",
+  "state": "Telangana",
+  "zone": "southern-zone",
+  "bbox": [
+   78.2,
+   17.2,
+   78.65,
+   17.6
+  ],
+  "also": []
+ },
+ {
+  "id": "chennai",
+  "name": "Chennai",
+  "state": "Tamil Nadu",
+  "zone": "southern-zone",
+  "bbox": [
+   80.05,
+   12.85,
+   80.35,
+   13.25
+  ],
+  "also": []
+ },
+ {
+  "id": "coimbatore",
+  "name": "Coimbatore",
+  "state": "Tamil Nadu",
+  "zone": "southern-zone",
+  "bbox": [
+   76.9,
+   10.95,
+   77.1,
+   11.1
+  ],
+  "also": []
+ },
+ {
+  "id": "madurai",
+  "name": "Madurai",
+  "state": "Tamil Nadu",
+  "zone": "southern-zone",
+  "bbox": [
+   78.05,
+   9.85,
+   78.2,
+   10.0
+  ],
+  "also": []
+ },
+ {
+  "id": "kochi",
+  "name": "Kochi",
+  "state": "Kerala",
+  "zone": "southern-zone",
+  "bbox": [
+   76.2,
+   9.9,
+   76.45,
+   10.1
+  ],
+  "also": []
+ },
+ {
+  "id": "thiruvananthapuram",
+  "name": "Thiruvananthapuram",
+  "state": "Kerala",
+  "zone": "southern-zone",
+  "bbox": [
+   76.85,
+   8.4,
+   77.05,
+   8.6
+  ],
+  "also": []
+ },
+ {
+  "id": "visakhapatnam",
+  "name": "Visakhapatnam",
+  "state": "Andhra Pradesh",
+  "zone": "southern-zone",
+  "bbox": [
+   83.15,
+   17.6,
+   83.4,
+   17.85
+  ],
+  "also": []
+ },
+ {
+  "id": "vijayawada",
+  "name": "Vijayawada",
+  "state": "Andhra Pradesh",
+  "zone": "southern-zone",
+  "bbox": [
+   80.55,
+   16.45,
+   80.75,
+   16.6
+  ],
+  "also": []
+ }
+]

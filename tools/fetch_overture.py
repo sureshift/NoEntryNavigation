@@ -3,19 +3,19 @@
 Usage: fetch_overture.py out.csv    (needs: pip install duckdb). Failure is non-fatal for the build."""
 import csv, json, sys, urllib.request
 
-BBOX = (76.80, 28.30, 77.62, 28.90)   # minlon, minlat, maxlon, maxlat
+BBOX = (76.80, 28.30, 77.62, 28.90)   # default Delhi NCR: minlon, minlat, maxlon, maxlat
 
 def latest():
     with urllib.request.urlopen("https://stac.overturemaps.org/catalog.json", timeout=30) as r:
         return json.load(r)["latest"]
 
-def main(out):
+def main(out, bbox=BBOX):
     import duckdb
     rel = latest()
     print("Overture release", rel)
     con = duckdb.connect()
     con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
-    x0, y0, x1, y1 = BBOX
+    x0, y0, x1, y1 = bbox
     src = f"read_parquet('s3://overturemaps-us-west-2/release/{rel}/theme=places/type=place/*', hive_partitioning=1)"
     cols = {r[0]: r[1] for r in con.execute(f"DESCRIBE SELECT * FROM {src}").fetchall()}
     print("columns:", ", ".join(cols))
@@ -39,4 +39,5 @@ def main(out):
     print(len(rows), "places written")
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    bb = tuple(float(x) for x in sys.argv[2].split(",")) if len(sys.argv) > 2 else BBOX
+    main(sys.argv[1], bb)
