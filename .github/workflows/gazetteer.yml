@@ -1,0 +1,22 @@
+name: Build city list
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  cities:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y osmium-tool && pip install osmium
+      - name: Build
+        run: |
+          curl -L --fail --retry 3 -A "ROUTIQ-CI" -o india.osm.pbf https://download.geofabrik.de/asia/india-latest.osm.pbf
+          osmium tags-filter india.osm.pbf n/place=city,town -o places.osm.pbf --overwrite
+          python tools/build_gazetteer.py places.osm.pbf android/app/src/main/assets/cities.json
+          ls -l android/app/src/main/assets/cities.json
+      - name: Commit
+        run: |
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add android/app/src/main/assets/cities.json
+          git diff --cached --quiet || (git commit -m "Update city list" && git pull --rebase -q && git push)
