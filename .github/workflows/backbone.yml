@@ -1,0 +1,28 @@
+name: Build highway backbone
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  backbone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y osmium-tool && pip install osmium
+      - name: Build
+        run: |
+          curl -L --fail --retry 3 -A "ROUTIQ-CI" -o india.osm.pbf https://download.geofabrik.de/asia/india-latest.osm.pbf
+          osmium tags-filter india.osm.pbf w/highway=motorway,trunk,primary -o hw.osm.pbf --overwrite
+          python tools/build_backbone.py hw.osm.pbf backbone.bin.gz motorway,trunk,primary | tee bb.log
+          grep SUMMARY bb.log
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view backbone >/dev/null 2>&1 || gh release create backbone --title "Highway backbone" --notes "Used by the app to plan map downloads. Do not delete."
+          gh release upload backbone backbone.bin.gz --clobber
+          cp backbone.bin.gz.json feed/backbone.json
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add feed/backbone.json
+          git diff --cached --quiet || (git commit -m "Update backbone index" && git pull --rebase -q && git push)
