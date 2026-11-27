@@ -817,6 +817,31 @@ class Engine(private val ctx: Context) : SegStore {
         } catch (_: Exception) { false }
     }
 
+    // ---- all-India city and town list (assets/cities.json: [name, lat, lon, 1 city | 2 town]) ----
+    private var cityRows: List<Place>? = null
+    private fun cities(): List<Place> {
+        cityRows?.let { return it }
+        val out = ArrayList<Place>()
+        try {
+            val arr = org.json.JSONArray(ctx.assets.open("cities.json").bufferedReader().use { it.readText() })
+            for (i in 0 until arr.length()) {
+                val a = arr.getJSONArray(i)
+                out.add(Place(a.getString(0), LatLon(a.getDouble(1), a.getDouble(2)), "city", if (a.getInt(3) == 1) "City" else "Town", ""))
+            }
+        } catch (_: Exception) { }
+        cityRows = out
+        return out
+    }
+
+    suspend fun searchCities(q: String, limit: Int = 6): List<Place> = withContext(Dispatchers.Default) {
+        val low = q.trim().lowercase(Locale.ROOT)
+        if (low.length < 2) return@withContext emptyList()
+        val all = cities()
+        val starts = all.filter { it.name.lowercase(Locale.ROOT).startsWith(low) }
+        val words = if (starts.size >= limit) emptyList() else all.filter { val n = it.name.lowercase(Locale.ROOT); !n.startsWith(low) && n.contains(" $low") }
+        (starts + words).take(limit)
+    }
+
     // ---- search (places, roads, streets, businesses, with addresses) ----
     suspend fun search(q: String, near: LatLon): List<Place> = withContext(Dispatchers.IO) {
         val clean = q.trim().lowercase(Locale.ROOT).replace("\\", " ").replace("%", " ").replace("_", " ").replace("'", "")

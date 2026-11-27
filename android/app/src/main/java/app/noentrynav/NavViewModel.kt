@@ -282,7 +282,9 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                 }.take(3).map { p ->
                     Place(p.name, p.center, "pack:${p.id}", (if (p.id in _s.value.installed) "Offline map on this phone · tap to open" else "Tap to download the offline map (${p.size / 1_000_000 + 1} MB)"), "")
                 } else emptyList()
-                val all = cities + r
+                val known = (cities.map { it.name.lowercase() } + r.filter { it.kind in setOf("city", "town") }.map { it.name.lowercase() }).toSet()
+                val india = engine.searchCities(q).filter { it.name.lowercase() !in known }
+                val all = cities + r.filter { it.kind in setOf("city", "town") } + india + r.filter { it.kind !in setOf("city", "town") }
                 _s.update { it.copy(busy = false, results = all, message = if (all.isEmpty()) "Nothing found offline. Try \"Search online\"." else null) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
