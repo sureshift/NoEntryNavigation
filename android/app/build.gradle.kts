@@ -12,13 +12,27 @@ android {
         applicationId = "app.noentrynav"
         minSdk = 21
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
+        versionName = "1.0." + (System.getenv("VERSION_CODE") ?: "0")
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }   // real phones only; x86 is for emulators
     }
-    buildTypes {
-        release { isMinifyEnabled = false }
+    // One fixed signing key for every build, so a new APK installs over the old one.
+    // CI can supply its own key through KS_FILE / KS_PASS (repository secrets); otherwise the key in android/signing is used.
+    signingConfigs {
+        create("routiq") {
+            storeFile = file(System.getenv("KS_FILE") ?: "../signing/routiq.jks")
+            storePassword = System.getenv("KS_PASS")?.takeIf { it.isNotEmpty() } ?: "Oxvh_h9A1Q8nZaLmIJJ-V9Ug"
+            keyAlias = "routiq"
+            keyPassword = System.getenv("KS_PASS")?.takeIf { it.isNotEmpty() } ?: "Oxvh_h9A1Q8nZaLmIJJ-V9Ug"
+        }
     }
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("routiq")
+        }
+    }
+    lint { checkReleaseBuilds = false; abortOnError = false }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

@@ -53,16 +53,30 @@ jobs:
           COMMUNITY_SECRET: ${{ secrets.COMMUNITY_SECRET }}
         run: python3 tools/community_server/make_config.py
 
-      - name: Build debug APK
+      - name: Signing key from repository secrets (optional; falls back to the key in android/signing)
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/routiq.jks"; echo "KS_FILE=$RUNNER_TEMP/routiq.jks" >> $GITHUB_ENV; fi
+      - name: Build release APK (signed)
         working-directory: android
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          KS_PASS: ${{ secrets.KEYSTORE_PASS }}
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
+      - name: Check the APK
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk ROUTIQ.apk
+          ls -l ROUTIQ.apk
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner verify --verbose ROUTIQ.apk | head -5
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)/aapt2 dump badging ROUTIQ.apk | head -3
       - uses: actions/upload-artifact@v4
         with:
           name: NoEntryNav-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ROUTIQ.apk
       - name: Publish as release (easy phone download)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: ROUTIQ build ${{ github.run_number }}
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: ROUTIQ.apk
