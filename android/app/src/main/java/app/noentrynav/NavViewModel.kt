@@ -114,6 +114,18 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         (c?.center ?: if (id == "delhi-ncr") LatLon(28.6139, 77.2090) else null)?.let { mapController.flyTo(it, 11.0) }
     }
 
+    fun autoCleanOn(): Boolean = engine.autoCleanOn()
+    fun setAutoClean(on: Boolean) { engine.setAutoClean(on); if (on) cleanMaps() }
+
+    /** After a trip: keep only the map where the driver is now, delete the other downloaded maps. */
+    fun cleanMaps() {
+        if (!engine.autoCleanOn()) return
+        val st = _s.value
+        val here = st.me?.let { m -> st.catalog.firstOrNull { it.contains(m) }?.id } ?: engine.packId
+        val removed = engine.pruneMaps(setOf(here, engine.packId))
+        if (removed > 0) _s.update { it.copy(installed = engine.installedPacks()) }
+    }
+
     fun deletePack(id: String) {
         if (engine.deletePack(id)) _s.update { it.copy(installed = engine.installedPacks()) }
         else _s.update { it.copy(packNote = "Switch to another map before deleting this one.") }
@@ -740,6 +752,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     private fun finish() {
         speak("You have arrived at your destination")
         _s.update { it.copy(navigating = false, route = null, dest = null, destName = "", message = "You have arrived.") }
+        cleanMaps()
     }
 
     private fun rerouteNow() {
