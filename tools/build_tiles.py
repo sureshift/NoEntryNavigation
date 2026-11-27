@@ -10,7 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, '..', 'data')
 UA = 'NoEntryNav-CI/1.0 (github.com/sureshift/NoEntryNavigation)'
 MARGIN = 0.01
-BATCH = 24
+BATCH = 6
 # rough coverage of each Geofabrik zone (minlon, minlat, maxlon, maxlat)
 ZONES = {
     'northern-zone': (72.5, 23.0, 80.5, 37.2),
