@@ -1,6 +1,7 @@
 package app.noentrynav
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,6 +36,7 @@ fun MapsScreen(s: UiState, vm: NavViewModel) {
     val suggested = s.catalog.firstOrNull { it.id == s.packSuggest }
     Surface(Modifier.fillMaxSize(), color = Color(0xFFF8FAFC)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            if (s.needPack) Image(painterResource(R.drawable.routiq_logo), contentDescription = "ROUTIQ", modifier = Modifier.padding(start = 20.dp, top = 18.dp).height(34.dp))
             Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 16.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!s.needPack) Box(Modifier.size(48.dp).clip(CircleShape).clickable { vm.showMaps(false) }, contentAlignment = Alignment.Center) { BackIcon(C.Ink) }
                 else Spacer(Modifier.width(10.dp))
