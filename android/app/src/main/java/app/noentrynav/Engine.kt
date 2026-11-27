@@ -617,9 +617,27 @@ class Engine(private val ctx: Context) : SegStore {
     }
 
     // ---- community sheet (Google Sheets + Apps Script, see tools/community_server) ----
-    fun communityEndpoint(): String = try {
-        JSONObject(ctx.assets.open("community_config.json").bufferedReader().use { it.readText() }).optString("endpoint").trim()
+    private val cfgKey = "NoEntryNav-2026-sureshift".toByteArray()
+    private fun unscramble(s: String): String {
+        if (s.isEmpty()) return ""
+        val raw = android.util.Base64.decode(s, android.util.Base64.DEFAULT)
+        return String(ByteArray(raw.size) { (raw[it].toInt() xor cfgKey[it % cfgKey.size].toInt()).toByte() })
+    }
+    private fun cfg(k: String): String = try {
+        unscramble(JSONObject(ctx.assets.open("community_config.json").bufferedReader().use { it.readText() }).optString(k))
     } catch (_: Exception) { "" }
+
+    fun communityEndpoint(): String = if (cfg("s").isEmpty()) "" else cfg("e")
+
+    private fun signed(action: String, d: String): String {
+        val t = (System.currentTimeMillis() / 1000).toString()
+        val dev = deviceId()
+        val mac = javax.crypto.Mac.getInstance("HmacSHA256")
+        mac.init(javax.crypto.spec.SecretKeySpec(cfg("s").toByteArray(), "HmacSHA256"))
+        val sig = mac.doFinal("$action|$t|$dev|$d".toByteArray()).joinToString("") { "%02x".format(it) }
+        val enc = { s: String -> java.net.URLEncoder.encode(s, "UTF-8") }
+        return "?action=$action&t=$t&dev=${enc(dev)}&d=${enc(d)}&sig=$sig"
+    }
 
     fun shareReportsOn(): Boolean = prefs().getBoolean("share_reports", true)
     fun setShareReports(on: Boolean) { prefs().edit().putBoolean("share_reports", on).apply() }
@@ -661,8 +679,7 @@ class Engine(private val ctx: Context) : SegStore {
                 for (i in 0 until out.length()) {
                     val o = out.getJSONObject(i)
                     val ok = try {
-                        val q = "?action=submit&dev=" + deviceId() + "&d=" + java.net.URLEncoder.encode(o.toString(), "UTF-8")
-                        val t = httpGet(ep + q)
+                        val t = httpGet(ep + signed("submit", o.toString()))
                         t != null && JSONObject(t).optBoolean("ok", false)
                     } catch (_: Exception) { false }
                     if (!ok) keep.put(o)
@@ -670,7 +687,7 @@ class Engine(private val ctx: Context) : SegStore {
                 prefs().edit().putString("outbox", keep.toString()).apply()
             }
             // 2. approved reports
-            val txt = httpGet(ep) ?: return@withContext false
+            val txt = httpGet(ep + signed("list", "")) ?: return@withContext false
             val arr = JSONObject(txt).optJSONArray("noentry_reports") ?: return@withContext false
             val fresh = ArrayList<Report>()
             val store = JSONArray()
