@@ -32,11 +32,12 @@ def get_source():
     if os.path.exists(out) and os.path.getsize(out) > 10_000_000:
         return out
     for u in ('https://download.geofabrik.de/asia/india-latest.osm.pbf',
-              'https://ftp5.gwdg.de/pub/misc/openstreetmap/download.geofabrik.de/asia/india-latest.osm.pbf'):
+              'https://ftp5.gwdg.de/pub/misc/openstreetmap/download.geofabrik.de/asia/india-latest.osm.pbf') * 3:
         r = sh('curl', '-L', '--fail', '--retry', '3', '--retry-delay', '10', '--connect-timeout', '30',
                '--max-time', '3000', '-A', UA, '-o', out, u, check=False)
         if r.returncode == 0 and os.path.getsize(out) > 10_000_000:
             return out
+        time.sleep(45)
     raise SystemExit('cannot download the India extract')
 
 

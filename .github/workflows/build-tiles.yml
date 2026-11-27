@@ -27,6 +27,7 @@ jobs:
       - name: Build tiles
         if: steps.gate.outputs.run == '1'
         run: |
+          set -o pipefail
           LAT=${{ matrix.lat }}; LAT2=$((LAT+3)); [ "$LAT2" -gt 38 ] && LAT2=38
           python tools/build_tiles.py "${{ matrix.lon[0] }},$LAT,${{ matrix.lon[1] }},$LAT2" out | tee build.log
       - name: Upload tiles (one release per 3 degrees of latitude)
