@@ -35,6 +35,16 @@ class Backbone private constructor(
         for (s in a.indices) { adj[fill[a[s]]++] = s; adj[fill[b[s]]++] = s }
     }
 
+    // only the big connected networks count when snapping a point (small isolated bits of primary road inside towns lead nowhere)
+    private val mainNet = BooleanArray(lat.size).also { ok ->
+        val par = IntArray(lat.size) { it }
+        fun find(x: Int): Int { var r = x; while (par[r] != r) { par[r] = par[par[r]]; r = par[r] }; return r }
+        for (s in a.indices) { val x = find(a[s]); val y = find(b[s]); if (x != y) par[x] = y }
+        val size = IntArray(lat.size)
+        for (i in lat.indices) size[find(i)]++
+        for (i in lat.indices) ok[i] = size[find(i)] >= 300
+    }
+
     private fun speed(seg: Int) = if (cls[seg].toInt() == 0) 70.0 else 45.0     // km/h
 
     /** Up to [k] nearest nodes within [maxM] metres, nearest first. */
@@ -43,6 +53,7 @@ class Backbone private constructor(
         val cosl = Math.cos(Math.toRadians(p.lat))
         val maxDeg = maxM / 111_000.0
         for (i in lat.indices) {
+            if (!mainNet[i]) continue
             val dy = lat[i] - p.lat
             if (dy > maxDeg || dy < -maxDeg) continue
             val dx = (lon[i] - p.lon) * cosl

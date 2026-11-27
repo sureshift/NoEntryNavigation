@@ -93,11 +93,11 @@ object TripMaps {
             var t = 0.0
             while (t <= 1.0) {
                 val p = LatLon(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t)
-                around(p, 0.06).forEach { add(it, false) }
+                around(p, 0.035).forEach { add(it, false) }
                 t += step
             }
         }
-        around(poly.last(), 0.06).forEach { add(it, false) }
+        around(poly.last(), 0.035).forEach { add(it, false) }
         around(dest, 0.05).forEach { add(it, true) }
         return order.map { Req(it.key, it.value) }
     }
