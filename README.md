@@ -1,41 +1,52 @@
 # ROUTIQ — truck navigation with no-entry rules for LCV, MCV and HCV
 
-Maps, routing and rules run on the phone and work fully offline. The only internet use is an optional update check
-(`feed/updates.json` from this repo) for new gazette notifications, diversions and temporary no-entry. See `feed/README.md`.
+Routing runs on the phone. Maps come from OpenStreetMap (roads, places, chowks) and Overture Maps (extra places in Delhi NCR),
+all free and open source. Nothing here uses Google data.
 
-- Roads, places and street names: built from OpenStreetMap into `delhi.db` and bundled in the APK
-- Routing: on-device A* that respects one-ways, HGV bans, height/weight limits and your no-entry zones
-- No-entry rules: Delhi gazette notifications in `android/app/src/main/assets/rules.json` (edit, push, new APK is built)
-- Start and end points: type a start place, long-press the map, or use GPS
+## How the maps work
+- **Delhi NCR** is inside the app (`delhi.db`, built by CI) so the first start works offline.
+- **Rest of India** is cut into 0.5° tiles (`tools/build_tiles.py`, workflow *Build map tiles*, hosted as release files `tiles-lat*`, index `feed/tiles.json`).
+  - L1 tile: motorway to tertiary roads and towns (about 0.6 MB). L2 tile: every road and place (about 3 MB).
+- **Highway backbone** (`tools/build_backbone.py`, release `backbone`, index `feed/backbone.json`, about 4 MB, downloaded once) is a skeleton of India's highways. It is only used to decide which tiles a trip needs.
+- When you enter a start and a destination that the loaded map does not cover, the app:
+  1. plans the corridor on the backbone,
+  2. downloads the start area in full detail first (it shows at once), then the tiles along the route in driving order, then the destination area,
+  3. joins them into one map file (`TripMaps.mergeAdd`) and routes on it with the normal engine.
+- After arrival or when the route is cancelled, the app keeps only the full-detail tile where the driver is and deletes everything else. There is no manual map management.
+- City and town search works offline for every Indian city (`assets/cities.json`, built by workflow *Build city list*).
 
-## Get the APK
-Push to `main`. GitHub Actions downloads OSM data, builds the database and the APK (about 10-15 min).
-Download `app-debug.apk` from Releases or the run's Artifacts and install it.
+## No-entry rules (`android/app/src/main/assets/rules.json`)
+Delhi Transport Dept notifications of 3 Aug 2021 and 12 Aug 2022 and Delhi Traffic Police notification of 21 Jun 2024.
+`notifications[]` is shown in the Rules screen. `rules[]`:
+- `kind: road` with `names` (matched against OSM road names) and `bbox` [minLon,minLat,maxLon,maxLat]
+- `kind: area` with `areas[{name,bbox}]`
+- `vehicles` (`lcv`,`mcv`,`hcv`), `windows` (["HH:MM","HH:MM"], end earlier than start crosses midnight), `days` (1=Mon..7=Sun), `effective` yyyymmdd
 
-## No-entry rules (rules.json)
-Based on the Delhi Transport Dept notifications of 3 Aug 2021 and 12 Aug 2022 and Delhi Traffic Police notification of 21 Jun 2024
-(data as of 26 Nov 2026). `notifications[]` is shown in the app's Rules screen. `rules[]`:
-- `kind: road` with `names` (matched against OSM road names) and `bbox` [minLon,minLat,maxLon,maxLat] limiting where the match counts
-- `kind: area` with `areas[{name,bbox}]` (whole box blocked)
-- `vehicles` (`lcv`,`mcv`,`hcv`), `windows` (["HH:MM","HH:MM"], end earlier than start crosses midnight, "24:00" allowed), `days` (1=Mon..7=Sun), `effective` yyyymmdd
+CI runs `tools/check_rules.py` against the Delhi map. Outside Delhi NCR there are no gazette rules; there the app routes by road class, HGV bans, height and weight limits.
 
-CI runs `tools/check_rules.py` and prints how many map segments each road rule matched (warnings for rules matching nothing; those are not enforced).
-Road extents and area boxes are approximate. Older 1996-2017 road notifications are not encoded yet.
+## Driver reports
+Drivers mark a no-entry road (start point, end point, vehicles, hours). With *Send to admin* on (default), reports go to a private Google Sheet through a signed request
+(`tools/community_server`, see its README). Reports are approved by an admin or automatically when enough different drivers agree (trust score). Approved reports show as *Verified by admin*.
+Reports can also be shared as a route link (WhatsApp / share sheet).
 
-## Driver reports (crowd-sourced no-entry)
-Tap the red **Report no-entry** button on the map (always visible). Tap where the road starts (or use your location), then where it ends, pick vehicles and hours.
-While driving the same button marks the start at your position and **End here** marks the end.
-The app finds the road between the two points and avoids it in routing. Reports stay on the phone (no server);
-use Rules > Share to send them (WhatsApp etc.) and Rules > Import to add reports a colleague sent.
-To ship reports to everyone, add them to `android/app/src/main/assets/community.json` (ids must start with `C-`) and push.
+## Build and install
+Push to `main`; GitHub Actions builds `ROUTIQ.apk` and publishes it as a release (`build-N`). Every build is signed with the same key
+(`android/signing/routiq.jks`, or the repository secrets `KEYSTORE_B64` and `KEYSTORE_PASS` when set), so a new build installs over the old one.
+If you installed an older build that was signed with a different key, uninstall it once.
 
-## Alternative routes
-After a route is found, up to two alternatives that use different roads are shown as tabs on the sheet (grey lines on the map).
+Repository secrets for driver reports: `COMMUNITY_URL`, `COMMUNITY_SECRET`.
 
-## Change the area
-Edit the `--bbox` in `.github/workflows/build-apk.yml` (min_lon,min_lat,max_lon,max_lat).
+## Workflows
+| Workflow | Purpose |
+|---|---|
+| Build APK | app + Delhi map + signed release |
+| Build map tiles | all-India tiles and `feed/tiles.json` |
+| Build highway backbone | `feed/backbone.json` |
+| Build city list | `assets/cities.json` |
+| Build city packs / update-feed | optional older city packs, gazette feed |
 
 ## Known limits
-- Turn restrictions (no-right-turn etc.) from OSM are not used yet
-- Map shows roads only, no labels or buildings
-- Debug-signed APK (not Play Store ready)
+- Turn restrictions from OSM are not used yet; live traffic is not included.
+- Outside Delhi NCR the app has no no-entry rules, only driver reports.
+- Between cities only main roads (L1) are on the map; full detail is loaded at the start, the destination and in Delhi NCR.
+- Map data comes from OpenStreetMap volunteers and can have gaps or wrong names.
