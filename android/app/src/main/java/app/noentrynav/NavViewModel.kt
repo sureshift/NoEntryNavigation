@@ -114,13 +114,10 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         (c?.center ?: if (id == "delhi-ncr") LatLon(28.6139, 77.2090) else null)?.let { mapController.flyTo(it, 11.0) }
     }
 
-    fun autoCleanOn(): Boolean = engine.autoCleanOn()
-    fun setAutoClean(on: Boolean) { engine.setAutoClean(on); if (on) cleanMaps() }
-
     /** After a trip: keep only the map where the driver is now, delete the other downloaded maps. */
     fun cleanMaps() {
-        if (!engine.autoCleanOn()) return
         val st = _s.value
+        if (st.packBusy != null || st.needPack) return
         val here = st.me?.let { m -> st.catalog.firstOrNull { it.contains(m) }?.id } ?: engine.packId
         val removed = engine.pruneMaps(setOf(here, engine.packId))
         if (removed > 0) _s.update { it.copy(installed = engine.installedPacks()) }
@@ -579,6 +576,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
     fun clearRoute() {
         _s.update { it.copy(dest = null, destName = "", origin = null, originName = "", route = null, routes = emptyList(), message = null, editing = null, pin = null) }
+        cleanMaps()
     }
 
     fun refreshZones() {

@@ -63,20 +63,7 @@ fun MapsScreen(s: UiState, vm: NavViewModel) {
                     Text("That place is in ${suggested.name}. Download its map to search and route there.", color = C.Primary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(14.dp))
                 }
             }
-            if (!s.needPack) {
-                var auto by remember { mutableStateOf(vm.autoCleanOn()) }
-                Row(
-                    Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White)
-                        .border(1.dp, C.Line, RoundedCornerShape(14.dp)).clickable { auto = !auto; vm.setAutoClean(auto) }.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Free up space after each trip", color = C.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Keeps only the map of the place where you are.", color = C.Muted, fontSize = 12.sp)
-                    }
-                    androidx.compose.material3.Switch(checked = auto, onCheckedChange = { auto = it; vm.setAutoClean(it) })
-                }
-            }
+            Text("Maps you no longer need are removed automatically after each trip.", color = C.Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp))
             s.packNote?.let { Box(Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp)) { StatusChip(it, C.DangerBg, C.Danger) } }
             if (s.catalog.isEmpty()) {
                 Column(Modifier.padding(24.dp)) {
@@ -108,7 +95,6 @@ fun MapsScreen(s: UiState, vm: NavViewModel) {
                                         Box(Modifier.clip(RoundedCornerShape(12.dp)).background(C.Primary).clickable { vm.usePack(p.id) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
                                             Text("Open", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                         }
-                                        Box(Modifier.clip(CircleShape).clickable { vm.deletePack(p.id) }.padding(8.dp)) { CloseIcon(C.Danger) }
                                     }
                                     else -> Box(
                                         Modifier.clip(RoundedCornerShape(12.dp)).background(if (s.packBusy == null) C.Primary else Color(0xFF94A3B8))

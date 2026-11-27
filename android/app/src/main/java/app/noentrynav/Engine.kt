@@ -156,9 +156,6 @@ class Engine(private val ctx: Context) : SegStore {
         prefs().edit().putString("pack", id).apply()
     }
 
-    fun autoCleanOn(): Boolean = prefs().getBoolean("autoclean", true)
-    fun setAutoClean(on: Boolean) { prefs().edit().putBoolean("autoclean", on).apply() }
-
     /** Deletes every downloaded map except the ones in [keep]. Returns how many were removed. */
     fun pruneMaps(keep: Set<String>): Int {
         var n = 0
