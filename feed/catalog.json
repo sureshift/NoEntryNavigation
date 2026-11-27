@@ -1,0 +1,43 @@
+{
+ "version": 1,
+ "packs": [
+  {
+   "id": "mumbai",
+   "name": "Mumbai & MMR",
+   "state": "Maharashtra",
+   "bbox": [
+    72.75,
+    18.85,
+    73.25,
+    19.45
+   ],
+   "size": 11732872,
+   "dbsize": 22261760,
+   "sha256": "63b91de5415531710179f60f4f8017400bf59371832d04af3a2c3ee06e20caa9",
+   "built": "2026-11-27",
+   "nodes": 130377,
+   "segs": 166354,
+   "places": 51203,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/mumbai.db.gz"
+  },
+  {
+   "id": "pune",
+   "name": "Pune",
+   "state": "Maharashtra",
+   "bbox": [
+    73.7,
+    18.4,
+    74.05,
+    18.7
+   ],
+   "size": 7877878,
+   "dbsize": 15360000,
+   "sha256": "dbda67f14349dfa7b525f18dd4981a6a05e9610960c0b98b0892f38dd4933e80",
+   "built": "2026-11-27",
+   "nodes": 109500,
+   "segs": 130910,
+   "places": 25011,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/pune.db.gz"
+  }
+ ]
+}
