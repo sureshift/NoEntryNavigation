@@ -8,6 +8,10 @@ import math, os, re, sqlite3, sys, time
 import hashlib
 import osmium
 
+# LITE=1: highway-only tile (motorway..tertiary, no local streets, only towns/villages as places) used between cities
+LITE = os.environ.get('LITE') == '1'
+LITE_HW = {'motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link', 'secondary', 'secondary_link', 'tertiary', 'tertiary_link'}
+
 # highway -> (road class, default km/h). Class: 0 motorway/trunk, 1 primary/secondary, 2 tertiary/residential, 3 service
 HW = {
     'motorway': (0, 70), 'motorway_link': (0, 40), 'trunk': (0, 55), 'trunk_link': (0, 35),
@@ -70,7 +74,7 @@ def num(s):
 
 def drivable(t):
     hw = t.get('highway')
-    if hw not in HW:
+    if hw not in HW or (LITE and hw not in LITE_HW):
         return False
     if hw == 'service' and t.get('service') in ('parking_aisle', 'driveway', 'drive-through', 'emergency_access'):
         return False
@@ -200,6 +204,8 @@ class Build(osmium.SimpleHandler):
         name = t.get('name:en') or t.get('name')
         if not name or t.get('highway') and t.get('highway') not in ('bus_stop',):
             return
+        if LITE and t.get('place') not in ('city', 'town', 'village', 'suburb', 'hamlet', 'locality', 'neighbourhood'):
+            return
         for k in POI_KEYS:
             v = t.get(k)
             if not v or v in POI_SKIP:
@@ -231,6 +237,8 @@ class Build(osmium.SimpleHandler):
 
     def chowk(self, t, lat, lon):
         """Named junctions (chowks, crossings, circles) so the map and search show them."""
+        if LITE:
+            return
         name = t.get('name:en') or t.get('name')
         if not name:
             return

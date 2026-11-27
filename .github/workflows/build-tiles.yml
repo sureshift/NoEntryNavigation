@@ -1,0 +1,31 @@
+name: Build map tiles
+on:
+  workflow_dispatch:
+    inputs:
+      zone:
+        description: "Geofabrik zone (western-zone, northern-zone, ...)"
+        default: "western-zone"
+      area:
+        description: "Optional area filter minlon,minlat,maxlon,maxlat"
+        default: ""
+      release:
+        description: "Release tag to upload to"
+        default: "tiles-pilot"
+permissions:
+  contents: write
+jobs:
+  tiles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y osmium-tool && pip install osmium
+      - name: Build tiles
+        run: python tools/build_tiles.py "${{ github.event.inputs.zone }}" out "${{ github.event.inputs.area }}" | tee build.log
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ github.event.inputs.release }}" >/dev/null 2>&1 || gh release create "${{ github.event.inputs.release }}" --title "Map tiles" --notes "Map tiles downloaded by the app."
+          ls out/* | xargs -n 40 gh release upload "${{ github.event.inputs.release }}" --clobber
+      - run: grep SUMMARY build.log || true
