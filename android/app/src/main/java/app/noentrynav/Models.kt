@@ -132,7 +132,7 @@ val VEHICLES = listOf(
 )
 
 enum class Field { FROM, TO }
-enum class Screen { MAP, RULES, FORM }
+enum class Screen { MAP, RULES, FORM, MAPS }
 enum class ReportStep { NONE, START, END, DETAILS }
 
 data class UiState(
@@ -179,8 +179,25 @@ data class UiState(
     val limitPosted: Boolean = false,// true when taken from a posted maxspeed, false when estimated from road class
     val speedKph: Int = 0,
     val camDistM: Double = -1.0,     // distance to the next camera on the route, -1 = none close
-    val camLimit: Int = 0
+    val camLimit: Int = 0,
+    val catalog: List<PackInfo> = emptyList(),   // downloadable city maps
+    val installed: Set<String> = emptySet(),
+    val packId: String = "delhi-ncr",
+    val packBusy: String? = null,
+    val packPct: Int = 0,
+    val packNote: String? = null,
+    val packSuggest: String? = null,
+    val needPack: Boolean = false
 )
+
+/** A downloadable offline city map (see tools/regions.json and feed/catalog.json). */
+data class PackInfo(
+    val id: String, val name: String, val state: String, val bbox: DoubleArray,
+    val size: Long, val dbsize: Long, val sha256: String, val url: String
+) {
+    fun contains(p: LatLon) = p.lon in bbox[0]..bbox[2] && p.lat in bbox[1]..bbox[3]
+    val center get() = LatLon((bbox[1] + bbox[3]) / 2, (bbox[0] + bbox[2]) / 2)
+}
 
 /** GeoJSON MultiLineString features for the offline road layers (major, main, local). */
 class Roads(val major: String, val main: String, val local: String, val names: String = "", val places: String = "")

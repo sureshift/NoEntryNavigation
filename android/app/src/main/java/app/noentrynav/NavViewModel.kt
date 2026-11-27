@@ -20,7 +20,7 @@ import java.util.Locale
 
 class NavViewModel(private val app: Application) : AndroidViewModel(app), TextToSpeech.OnInitListener {
 
-    private val _s = MutableStateFlow(UiState(message = "Loading offline Delhi map… (first start takes a minute)"))
+    private val _s = MutableStateFlow(UiState(message = "Loading offline map… (first start takes a minute)"))
     val state: StateFlow<UiState> = _s
     val mapController = MapController()
 
@@ -40,6 +40,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     init {
         _s.update { it.copy(crash = CrashLog.take(app)) }
         load()
+        refreshCatalog()
         startTicker()
     }
 
@@ -61,6 +62,9 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                 _s.update { it.copy(feedUpdated = engine.feedUpdated) }
                 // pick up new gazette notifications / diversions in the background (at most every 6 hours)
                 if (System.currentTimeMillis() - engine.lastFeedCheck() > 6 * 3600_000L) refreshFeed(manual = false)
+            } catch (e: Engine.NeedPack) {
+                _s.update { it.copy(ready = false, message = null, loadError = null, needPack = true, screen = Screen.MAPS, installed = engine.installedPacks(), packId = engine.packId) }
+                refreshCatalog()
             } catch (e: Throwable) {
                 _s.update { it.copy(ready = false, message = null, loadError = e.message ?: "Map data could not be loaded") }
             }
@@ -68,6 +72,52 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     }
 
     fun retryLoad() = load()
+
+    // ---- offline city maps ----
+    fun refreshCatalog() {
+        viewModelScope.launch {
+            val c = try { Packs.catalog(app) } catch (_: Throwable) { null }
+            _s.update { it.copy(catalog = c ?: it.catalog, installed = engine.installedPacks(), packId = engine.packId) }
+        }
+    }
+
+    fun showMaps(show: Boolean, suggest: String? = null) {
+        if (!show && _s.value.needPack) return           // nothing to go back to yet
+        _s.update { it.copy(screen = if (show) Screen.MAPS else Screen.MAP, packSuggest = if (show) suggest else null, results = emptyList(), editing = null, message = null, packNote = null) }
+        if (show) refreshCatalog()
+    }
+
+    fun downloadPack(id: String) {
+        val st = _s.value
+        val p = st.catalog.firstOrNull { it.id == id } ?: return
+        if (st.packBusy != null) return
+        _s.update { it.copy(packBusy = id, packPct = 0, packNote = null) }
+        viewModelScope.launch {
+            val err = Packs.download(app, engine, p) { pct -> _s.update { it.copy(packPct = pct) } }
+            _s.update { it.copy(packBusy = null, packNote = err, installed = engine.installedPacks()) }
+            if (err == null) usePack(id)
+        }
+    }
+
+    fun usePack(id: String) {
+        if (id == engine.packId && _s.value.ready) { showMaps(false); return }
+        val c = _s.value.catalog.firstOrNull { it.id == id }
+        engine.setPack(id)
+        _s.update {
+            it.copy(
+                ready = false, needPack = false, screen = Screen.MAP, packId = id, packSuggest = null,
+                route = null, routes = emptyList(), origin = null, dest = null, originName = "", destName = "",
+                roads = null, results = emptyList(), pin = null, editing = null
+            )
+        }
+        load()
+        (c?.center ?: if (id == "delhi-ncr") LatLon(28.6139, 77.2090) else null)?.let { mapController.flyTo(it, 11.0) }
+    }
+
+    fun deletePack(id: String) {
+        if (engine.deletePack(id)) _s.update { it.copy(installed = engine.installedPacks()) }
+        else _s.update { it.copy(packNote = "Switch to another map before deleting this one.") }
+    }
 
     /** Fetch new gazette notifications and Delhi Traffic Police diversions / temporary no-entry from the online feed. */
     fun refreshFeed(manual: Boolean = true) {
@@ -215,8 +265,16 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         if (q.isBlank()) { _s.update { it.copy(results = emptyList(), busy = false, message = null) }; return }
         searchJob = viewModelScope.launch {
             try {
-                val r = engine.search(q.trim(), _s.value.me ?: _s.value.origin ?: LatLon(28.6139, 77.2090))
-                _s.update { it.copy(busy = false, results = r, message = if (r.isEmpty()) "Nothing found offline. Try \"Search online\"." else null) }
+                val near = _s.value.me ?: _s.value.origin ?: _s.value.catalog.firstOrNull { it.id == engine.packId }?.center ?: LatLon(28.6139, 77.2090)
+                val r = engine.search(q.trim(), near)
+                val low = q.trim().lowercase()
+                val cities = if (low.length >= 3) _s.value.catalog.filter { p ->
+                    p.id != engine.packId && (p.name.lowercase().startsWith(low) || p.name.lowercase().contains(" $low") || p.state.lowercase().startsWith(low))
+                }.take(3).map { p ->
+                    Place(p.name, p.center, "pack:${p.id}", (if (p.id in _s.value.installed) "Offline map on this phone · tap to open" else "Tap to download the offline map (${p.size / 1_000_000 + 1} MB)"), "")
+                } else emptyList()
+                val all = cities + r
+                _s.update { it.copy(busy = false, results = all, message = if (all.isEmpty()) "Nothing found offline. Try \"Search online\"." else null) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -231,8 +289,8 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         searchJob = viewModelScope.launch {
             _s.update { it.copy(busy = true, message = null) }
             try {
-                val r = engine.searchOnline(q)
-                _s.update { it.copy(busy = false, results = r, message = if (r.isEmpty()) "OpenStreetMap found nothing for that in Delhi NCR." else null) }
+                val r = engine.searchOnline(q, _s.value.me ?: _s.value.catalog.firstOrNull { it.id == engine.packId }?.center ?: LatLon(28.6139, 77.2090))
+                _s.update { it.copy(busy = false, results = r, message = if (r.isEmpty()) "OpenStreetMap found nothing for that." else null) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: java.net.UnknownHostException) {
@@ -250,6 +308,18 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
     /** A search result was tapped: it becomes the start or the destination depending on the field being edited. */
     fun pickPlace(p: Place) {
+        if (p.kind.startsWith("pack:")) {
+            val id = p.kind.removePrefix("pack:")
+            if (id in _s.value.installed) usePack(id) else showMaps(true, id)
+            return
+        }
+        // a place in another city: open the maps page so the city can be downloaded
+        val st = _s.value
+        val here = st.catalog.firstOrNull { it.id == st.packId }
+        if (here != null && !here.contains(p.pos)) {
+            val other = st.catalog.firstOrNull { it.contains(p.pos) }
+            if (other != null) { _s.update { it.copy(results = emptyList(), editing = null) }; if (other.id in st.installed) usePack(other.id) else showMaps(true, other.id); return }
+        }
         val name = p.name
         if (_s.value.editing == Field.FROM) setOrigin(p.pos, name) else setDestination(p.pos, name)
     }

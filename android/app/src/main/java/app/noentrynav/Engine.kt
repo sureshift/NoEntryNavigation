@@ -132,19 +132,63 @@ class Engine(private val ctx: Context) : SegStore {
         prefs.edit().putLong("dbstamp", stamp).apply()
     }
 
+    class NeedPack(val id: String) : Exception("Download a map to start")
+
+    val packId: String get() = prefs().getString("pack", "delhi-ncr") ?: "delhi-ncr"
+    fun dbFileFor(id: String): File = ctx.getDatabasePath(if (id == "delhi-ncr") "delhi.db" else "pack_$id.db")
+    private fun hasBundledDelhi(): Boolean = try { ctx.assets.open("delhi.db").close(); true } catch (_: Exception) { false }
+
+    /** Packs that are on the phone (the bundled Delhi map counts while it is inside the app). */
+    fun installedPacks(): Set<String> {
+        val out = HashSet<String>()
+        val dir = dbFileFor("x").parentFile
+        dir?.listFiles()?.forEach { f ->
+            if (f.name.startsWith("pack_") && f.name.endsWith(".db")) out.add(f.name.removePrefix("pack_").removeSuffix(".db"))
+        }
+        if (dbFileFor("delhi-ncr").exists() || hasBundledDelhi()) out.add("delhi-ncr")
+        return out
+    }
+
+    fun setPack(id: String) {
+        try { db?.close() } catch (_: Exception) {}
+        db = null
+        reportZoneCache.clear()
+        prefs().edit().putString("pack", id).apply()
+    }
+
+    fun deletePack(id: String): Boolean {
+        if (id == packId) return false
+        val f = dbFileFor(id)
+        File(f.path + "-journal").delete()
+        return !f.exists() || f.delete()
+    }
+
     suspend fun load() = withContext(Dispatchers.IO) {
-        val dbFile = ctx.getDatabasePath("delhi.db")
-        val stamp = ctx.packageManager.getPackageInfo(ctx.packageName, 0).lastUpdateTime
+        val id = packId
+        val dbFile = dbFileFor(id)
         val prefs = ctx.getSharedPreferences("noentry", Context.MODE_PRIVATE)
-        if (!dbFile.exists() || prefs.getLong("dbstamp", 0L) != stamp) installDb(dbFile, stamp)
-        try {
-            loadGraph(dbFile)
-        } catch (e: Exception) {
-            // a damaged copy: reinstall once from the APK and try again
-            try { db?.close() } catch (_: Exception) {}
-            db = null
-            installDb(dbFile, stamp)
-            loadGraph(dbFile)
+        if (id == "delhi-ncr" && hasBundledDelhi()) {
+            val stamp = ctx.packageManager.getPackageInfo(ctx.packageName, 0).lastUpdateTime
+            if (!dbFile.exists() || prefs.getLong("dbstamp", 0L) != stamp) installDb(dbFile, stamp)
+            try {
+                loadGraph(dbFile)
+            } catch (e: Exception) {
+                // a damaged copy: reinstall once from the APK and try again
+                try { db?.close() } catch (_: Exception) {}
+                db = null
+                installDb(dbFile, stamp)
+                loadGraph(dbFile)
+            }
+        } else {
+            if (!dbFile.exists()) throw NeedPack(id)
+            try {
+                loadGraph(dbFile)
+            } catch (e: Exception) {
+                try { db?.close() } catch (_: Exception) {}
+                db = null
+                dbFile.delete()
+                throw NeedPack(id)            // damaged: download it again
+            }
         }
         loadRules()
     }
@@ -739,15 +783,15 @@ class Engine(private val ctx: Context) : SegStore {
     }
 
     /** Optional online lookup in OpenStreetMap's own search service (Nominatim), limited to Delhi NCR. Only runs when the driver asks. */
-    suspend fun searchOnline(q: String): List<Place> = withContext(Dispatchers.IO) {
-        try { val r = photon(q); if (r.isNotEmpty()) return@withContext r } catch (_: Exception) { }
+    suspend fun searchOnline(q: String, near: LatLon = LatLon(28.6139, 77.2090)): List<Place> = withContext(Dispatchers.IO) {
+        try { val r = photon(q, near); if (r.isNotEmpty()) return@withContext r } catch (_: Exception) { }
         nominatim(q)
     }
 
     /** Photon (open source, OpenStreetMap data): forgiving of spelling mistakes and partial names. */
-    private fun photon(q: String): List<Place> {
+    private fun photon(q: String, near: LatLon): List<Place> {
         val enc = java.net.URLEncoder.encode(q.trim(), "UTF-8")
-        val url = "https://photon.komoot.io/api/?limit=15&lat=28.6139&lon=77.2090&bbox=76.7,28.2,77.7,29.0&q=$enc"
+        val url = "https://photon.komoot.io/api/?limit=15&lat=${near.lat}&lon=${near.lon}&bbox=68.0,6.5,97.5,35.7&q=$enc"
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 8000; conn.readTimeout = 12000
         conn.setRequestProperty("User-Agent", "NoEntryNav/1.0 (sureshift.in)")
@@ -768,7 +812,7 @@ class Engine(private val ctx: Context) : SegStore {
     private fun nominatim(q: String): List<Place> {
         val enc = java.net.URLEncoder.encode(q.trim(), "UTF-8")
         val url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=15&countrycodes=in&bounded=1" +
-            "&viewbox=76.7,29.0,77.7,28.2&addressdetails=0&q=$enc"
+            "&viewbox=68.0,35.7,97.5,6.5&addressdetails=0&q=$enc"
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 8000; conn.readTimeout = 12000
         conn.setRequestProperty("User-Agent", "NoEntryNav/1.0 (sureshift.in)")

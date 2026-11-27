@@ -123,6 +123,7 @@ fun MainScreen(vm: NavViewModel) {
     SideEffect { view.keepScreenOn = s.navigating }
     BackHandler(enabled = s.screen == Screen.RULES) { vm.showRules(false) }
     BackHandler(enabled = s.screen == Screen.FORM) { vm.showForm(false) }
+    BackHandler(enabled = s.screen == Screen.MAPS && !s.needPack) { vm.showMaps(false) }
     BackHandler(enabled = s.screen == Screen.MAP && s.pin != null) { vm.dismissPin() }
     BackHandler(enabled = s.screen == Screen.MAP && s.pin == null && s.editing != null) { vm.edit(null) }
     BackHandler(enabled = s.screen == Screen.MAP && s.report != ReportStep.NONE) { vm.cancelReport() }
@@ -194,6 +195,11 @@ fun MainScreen(vm: NavViewModel) {
                                 }
                             }
                         }
+                        if (showTarget && !s.navigating) {
+                            Surface(shape = RoundedCornerShape(22.dp), color = Color.White, shadowElevation = 10.dp, modifier = Modifier.clickable { vm.showMaps(true) }) {
+                                Text("Maps", color = C.Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp))
+                            }
+                        }
                         if (showTarget) RoundButton(onClick = { vm.recenter() }) { TargetIcon(C.Ink) }
                         if (showZoom) {
                             Surface(shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 10.dp) {
@@ -225,6 +231,7 @@ fun MainScreen(vm: NavViewModel) {
 
         if (s.screen == Screen.RULES) RulesScreen(s, vm)
         if (s.screen == Screen.FORM) RouteFormScreen(s, vm)
+        if (s.screen == Screen.MAPS) MapsScreen(s, vm)
     }
 }
 
