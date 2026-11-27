@@ -2,6 +2,386 @@
  "version": 1,
  "packs": [
   {
+   "id": "vijayawada",
+   "name": "Vijayawada",
+   "state": "Andhra Pradesh",
+   "bbox": [
+    80.55,
+    16.45,
+    80.75,
+    16.6
+   ],
+   "size": 2426791,
+   "dbsize": 4935680,
+   "sha256": "3cb08fe9bc54f2f05b4c2b419db5caac4a7f857f879ab0bfac85ddb1ef77d413",
+   "built": "2026-11-27",
+   "nodes": 27703,
+   "segs": 36430,
+   "places": 11646,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/vijayawada.db.gz"
+  },
+  {
+   "id": "visakhapatnam",
+   "name": "Visakhapatnam",
+   "state": "Andhra Pradesh",
+   "bbox": [
+    83.15,
+    17.6,
+    83.4,
+    17.85
+   ],
+   "size": 3504845,
+   "dbsize": 7147520,
+   "sha256": "c292956f4ad0f38af245b62e19a2f723cf82099c9c7c436e8cf94f2701bac9d9",
+   "built": "2026-11-27",
+   "nodes": 41737,
+   "segs": 55641,
+   "places": 13751,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/visakhapatnam.db.gz"
+  },
+  {
+   "id": "guwahati",
+   "name": "Guwahati",
+   "state": "Assam",
+   "bbox": [
+    91.6,
+    26.08,
+    91.9,
+    26.25
+   ],
+   "size": 2480975,
+   "dbsize": 4902912,
+   "sha256": "14b3adfc09382ba589a1e15b698f70ea0b144512fa72907ae97bd89b7a643ff7",
+   "built": "2026-11-27",
+   "nodes": 22228,
+   "segs": 26519,
+   "places": 15786,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/guwahati.db.gz"
+  },
+  {
+   "id": "patna",
+   "name": "Patna",
+   "state": "Bihar",
+   "bbox": [
+    85.0,
+    25.5,
+    85.3,
+    25.7
+   ],
+   "size": 4142939,
+   "dbsize": 8159232,
+   "sha256": "8c16b3bc66d6b938490a2a044d61e734322414ee59d3ad42a4d0ce95a7d1d031",
+   "built": "2026-11-27",
+   "nodes": 44261,
+   "segs": 53824,
+   "places": 17003,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/patna.db.gz"
+  },
+  {
+   "id": "chandigarh",
+   "name": "Chandigarh Tricity",
+   "state": "Chandigarh",
+   "bbox": [
+    76.6,
+    30.6,
+    76.95,
+    30.82
+   ],
+   "size": 5433704,
+   "dbsize": 11210752,
+   "sha256": "1ffafbaac63ef0104808128b7f84462060ceeda63ef48bddb4767b154de8a896",
+   "built": "2026-11-27",
+   "nodes": 60456,
+   "segs": 80658,
+   "places": 24248,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/chandigarh.db.gz"
+  },
+  {
+   "id": "raipur",
+   "name": "Raipur",
+   "state": "Chhattisgarh",
+   "bbox": [
+    81.55,
+    21.15,
+    81.75,
+    21.35
+   ],
+   "size": 2371409,
+   "dbsize": 4886528,
+   "sha256": "d40a864113b7996c47822f62aaa631463390148c64dd167420d9576cf8cf2a58",
+   "built": "2026-11-27",
+   "nodes": 29446,
+   "segs": 39495,
+   "places": 8370,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/raipur.db.gz"
+  },
+  {
+   "id": "delhi-ncr",
+   "name": "Delhi NCR (Delhi, Gurugram, Noida, Ghaziabad)",
+   "state": "Delhi",
+   "bbox": [
+    76.8,
+    28.3,
+    77.62,
+    28.9
+   ],
+   "size": 45415777,
+   "dbsize": 94527488,
+   "sha256": "e25de718c0e7dfaf2f071600aa8263255dfe81741956f1b3b60a017a3bf13a49",
+   "built": "2026-11-27",
+   "nodes": 486246,
+   "segs": 652854,
+   "places": 209728,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/delhi-ncr.db.gz"
+  },
+  {
+   "id": "goa",
+   "name": "Goa",
+   "state": "Goa",
+   "bbox": [
+    73.65,
+    14.9,
+    74.35,
+    15.8
+   ],
+   "size": 5238403,
+   "dbsize": 9936896,
+   "sha256": "fd4c6c4c8d713add0119422c82ae3497b82522626721d532ab066329fa2a472f",
+   "built": "2026-11-27",
+   "nodes": 47722,
+   "segs": 57338,
+   "places": 30383,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/goa.db.gz"
+  },
+  {
+   "id": "ahmedabad",
+   "name": "Ahmedabad",
+   "state": "Gujarat",
+   "bbox": [
+    72.45,
+    22.9,
+    72.8,
+    23.2
+   ],
+   "size": 8587318,
+   "dbsize": 17903616,
+   "sha256": "e0e451445cf011849fc66f6213d92ff4e9d3c1737170762d96e726d57ea08c32",
+   "built": "2026-11-27",
+   "nodes": 77608,
+   "segs": 99711,
+   "places": 45908,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/ahmedabad.db.gz"
+  },
+  {
+   "id": "rajkot",
+   "name": "Rajkot",
+   "state": "Gujarat",
+   "bbox": [
+    70.7,
+    22.2,
+    70.9,
+    22.35
+   ],
+   "size": 2818886,
+   "dbsize": 5820416,
+   "sha256": "b7adbb76b119ce762458e7b1e001b2e433b560a736301f7e87374e36fe493e65",
+   "built": "2026-11-27",
+   "nodes": 35030,
+   "segs": 48270,
+   "places": 9398,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/rajkot.db.gz"
+  },
+  {
+   "id": "surat",
+   "name": "Surat",
+   "state": "Gujarat",
+   "bbox": [
+    72.7,
+    21.05,
+    72.95,
+    21.3
+   ],
+   "size": 5787692,
+   "dbsize": 12070912,
+   "sha256": "da556b5dca2f99c0d550e661faf1bcbfa24fdd5d87864e5634eecd25b48d0ad9",
+   "built": "2026-11-27",
+   "nodes": 71906,
+   "segs": 91856,
+   "places": 22345,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/surat.db.gz"
+  },
+  {
+   "id": "vadodara",
+   "name": "Vadodara",
+   "state": "Gujarat",
+   "bbox": [
+    73.05,
+    22.2,
+    73.3,
+    22.4
+   ],
+   "size": 4649806,
+   "dbsize": 9646080,
+   "sha256": "75d80de4108d759ac74d2508a7ae13107ac260a3a1f7972900c8a376052d9c8c",
+   "built": "2026-11-27",
+   "nodes": 61530,
+   "segs": 77693,
+   "places": 15508,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/vadodara.db.gz"
+  },
+  {
+   "id": "ranchi",
+   "name": "Ranchi",
+   "state": "Jharkhand",
+   "bbox": [
+    85.2,
+    23.3,
+    85.45,
+    23.45
+   ],
+   "size": 3108398,
+   "dbsize": 6021120,
+   "sha256": "fae1383423e0427d9de01917f8c48c9ebb3df66789181bddc70bd3bf098c1cb0",
+   "built": "2026-11-27",
+   "nodes": 38977,
+   "segs": 48240,
+   "places": 8451,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/ranchi.db.gz"
+  },
+  {
+   "id": "bengaluru",
+   "name": "Bengaluru",
+   "state": "Karnataka",
+   "bbox": [
+    77.4,
+    12.8,
+    77.8,
+    13.15
+   ],
+   "size": 26610713,
+   "dbsize": 55386112,
+   "sha256": "638ed430fde715c2d0bf72579554a54fb954998c60ae48f0ccb740f6cd12b540",
+   "built": "2026-11-27",
+   "nodes": 278887,
+   "segs": 348409,
+   "places": 151746,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/bengaluru.db.gz"
+  },
+  {
+   "id": "mangaluru",
+   "name": "Mangaluru",
+   "state": "Karnataka",
+   "bbox": [
+    74.8,
+    12.85,
+    74.95,
+    12.95
+   ],
+   "size": 972883,
+   "dbsize": 1904640,
+   "sha256": "c2e28d3160f86658656ebf509f1e659555e2b7f99ad984636de1b07ec4d5aca2",
+   "built": "2026-11-27",
+   "nodes": 9062,
+   "segs": 11212,
+   "places": 5048,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/mangaluru.db.gz"
+  },
+  {
+   "id": "mysuru",
+   "name": "Mysuru",
+   "state": "Karnataka",
+   "bbox": [
+    76.55,
+    12.25,
+    76.75,
+    12.4
+   ],
+   "size": 3118985,
+   "dbsize": 6418432,
+   "sha256": "c31c31b4d585739b3052a2571254fcbfd60705ccf2bc6c443e65f88e14cc36dd",
+   "built": "2026-11-27",
+   "nodes": 42165,
+   "segs": 59744,
+   "places": 9121,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/mysuru.db.gz"
+  },
+  {
+   "id": "kochi",
+   "name": "Kochi",
+   "state": "Kerala",
+   "bbox": [
+    76.2,
+    9.9,
+    76.45,
+    10.1
+   ],
+   "size": 5291362,
+   "dbsize": 10309632,
+   "sha256": "cf87596350e8d5b32d53c4fb8d01b73bba88c8c05848f6126382e4a547ff4e92",
+   "built": "2026-11-27",
+   "nodes": 44264,
+   "segs": 52378,
+   "places": 36293,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/kochi.db.gz"
+  },
+  {
+   "id": "thiruvananthapuram",
+   "name": "Thiruvananthapuram",
+   "state": "Kerala",
+   "bbox": [
+    76.85,
+    8.4,
+    77.05,
+    8.6
+   ],
+   "size": 4496069,
+   "dbsize": 8724480,
+   "sha256": "fb6528f3fa2ec5f5fa7c2f0bf6acb14b536a81fd3f9dc5cd6f3a0ea23bd3fa05",
+   "built": "2026-11-27",
+   "nodes": 48793,
+   "segs": 57254,
+   "places": 21522,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/thiruvananthapuram.db.gz"
+  },
+  {
+   "id": "bhopal",
+   "name": "Bhopal",
+   "state": "Madhya Pradesh",
+   "bbox": [
+    77.3,
+    23.15,
+    77.55,
+    23.35
+   ],
+   "size": 4699387,
+   "dbsize": 9568256,
+   "sha256": "673e6a8ff593e50ce3b598cd1d6a018b6c476c39af3f9c1062f303842d0714c5",
+   "built": "2026-11-27",
+   "nodes": 66784,
+   "segs": 87696,
+   "places": 12184,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/bhopal.db.gz"
+  },
+  {
+   "id": "indore",
+   "name": "Indore",
+   "state": "Madhya Pradesh",
+   "bbox": [
+    75.75,
+    22.6,
+    75.95,
+    22.8
+   ],
+   "size": 4842955,
+   "dbsize": 10125312,
+   "sha256": "b58af45c9ef514acafbb6040f3606344a8333ed36ad0f632b7d59d7bb6e817de",
+   "built": "2026-11-27",
+   "nodes": 56335,
+   "segs": 75513,
+   "places": 20161,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/indore.db.gz"
+  },
+  {
    "id": "mumbai",
    "name": "Mumbai & MMR",
    "state": "Maharashtra",
@@ -11,14 +391,52 @@
     73.25,
     19.45
    ],
-   "size": 11732872,
-   "dbsize": 22261760,
-   "sha256": "63b91de5415531710179f60f4f8017400bf59371832d04af3a2c3ee06e20caa9",
+   "size": 21216447,
+   "dbsize": 43675648,
+   "sha256": "e88767acaf96b6d4cf11af77a4cdff37a368ee66d750d2e7c6110426d28e952d",
    "built": "2026-11-27",
    "nodes": 130377,
    "segs": 166354,
-   "places": 51203,
+   "places": 157103,
    "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/mumbai.db.gz"
+  },
+  {
+   "id": "nagpur",
+   "name": "Nagpur",
+   "state": "Maharashtra",
+   "bbox": [
+    78.95,
+    21.05,
+    79.25,
+    21.25
+   ],
+   "size": 5201036,
+   "dbsize": 10764288,
+   "sha256": "8ab6cb7176fac1820ae467adfa236d78cd89027798f18e5beb71288eb74dfb45",
+   "built": "2026-11-27",
+   "nodes": 67348,
+   "segs": 92770,
+   "places": 16298,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/nagpur.db.gz"
+  },
+  {
+   "id": "nashik",
+   "name": "Nashik",
+   "state": "Maharashtra",
+   "bbox": [
+    73.7,
+    19.9,
+    73.9,
+    20.1
+   ],
+   "size": 2365324,
+   "dbsize": 4964352,
+   "sha256": "04343ecb535690fcd5393c0351fb32b2345c6c6caa8897468c4376c84df2af07",
+   "built": "2026-11-27",
+   "nodes": 24805,
+   "segs": 33180,
+   "places": 12513,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/nashik.db.gz"
   },
   {
    "id": "pune",
@@ -30,14 +448,356 @@
     74.05,
     18.7
    ],
-   "size": 7877878,
-   "dbsize": 15360000,
-   "sha256": "dbda67f14349dfa7b525f18dd4981a6a05e9610960c0b98b0892f38dd4933e80",
+   "size": 12385856,
+   "dbsize": 25247744,
+   "sha256": "f59e67de4088002008d029a0fc63bd3559e4ef07d3e4f5ce2e0a683557009fd1",
    "built": "2026-11-27",
    "nodes": 109500,
    "segs": 130910,
-   "places": 25011,
+   "places": 73766,
    "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/pune.db.gz"
+  },
+  {
+   "id": "bhubaneswar",
+   "name": "Bhubaneswar",
+   "state": "Odisha",
+   "bbox": [
+    85.7,
+    20.2,
+    85.9,
+    20.4
+   ],
+   "size": 2962512,
+   "dbsize": 5976064,
+   "sha256": "c5a387a0287676f17a4e1973c53023106902c340d9e5aceb513e479dcdbe513d",
+   "built": "2026-11-27",
+   "nodes": 35210,
+   "segs": 44272,
+   "places": 11457,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/bhubaneswar.db.gz"
+  },
+  {
+   "id": "amritsar",
+   "name": "Amritsar",
+   "state": "Punjab",
+   "bbox": [
+    74.8,
+    31.58,
+    74.95,
+    31.7
+   ],
+   "size": 2284260,
+   "dbsize": 4722688,
+   "sha256": "aa91fc4c883e01834e07d955d1c0b5d5757d30a791ad41ab1a484bc77576262e",
+   "built": "2026-11-27",
+   "nodes": 30565,
+   "segs": 40610,
+   "places": 7326,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/amritsar.db.gz"
+  },
+  {
+   "id": "ludhiana",
+   "name": "Ludhiana",
+   "state": "Punjab",
+   "bbox": [
+    75.75,
+    30.85,
+    75.95,
+    30.97
+   ],
+   "size": 3976528,
+   "dbsize": 8343552,
+   "sha256": "d07cb79adda4b4e7546d7995c782df057c427770b387a3be6741fc7948f12633",
+   "built": "2026-11-27",
+   "nodes": 51470,
+   "segs": 71125,
+   "places": 13813,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/ludhiana.db.gz"
+  },
+  {
+   "id": "jaipur",
+   "name": "Jaipur",
+   "state": "Rajasthan",
+   "bbox": [
+    75.65,
+    26.75,
+    76.0,
+    27.05
+   ],
+   "size": 10326540,
+   "dbsize": 21319680,
+   "sha256": "1531534bfc9514ef439871741c4f63ef3344069fd7f1fe785d1a56551a7229a5",
+   "built": "2026-11-27",
+   "nodes": 133171,
+   "segs": 176763,
+   "places": 32809,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/jaipur.db.gz"
+  },
+  {
+   "id": "jodhpur",
+   "name": "Jodhpur",
+   "state": "Rajasthan",
+   "bbox": [
+    72.95,
+    26.2,
+    73.1,
+    26.35
+   ],
+   "size": 2832009,
+   "dbsize": 5758976,
+   "sha256": "68fedf8858c72413977d20a25bb493d132ff29e33e353d75213d68d4f476332e",
+   "built": "2026-11-27",
+   "nodes": 40070,
+   "segs": 53938,
+   "places": 6782,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/jodhpur.db.gz"
+  },
+  {
+   "id": "udaipur",
+   "name": "Udaipur",
+   "state": "Rajasthan",
+   "bbox": [
+    73.6,
+    24.52,
+    73.8,
+    24.65
+   ],
+   "size": 1675433,
+   "dbsize": 3444736,
+   "sha256": "f15f270888b0bad74771e4115cefe5b8d7cef574142c922c50614d31e5fa5743",
+   "built": "2026-11-27",
+   "nodes": 18162,
+   "segs": 24437,
+   "places": 7774,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/udaipur.db.gz"
+  },
+  {
+   "id": "chennai",
+   "name": "Chennai",
+   "state": "Tamil Nadu",
+   "bbox": [
+    80.05,
+    12.85,
+    80.35,
+    13.25
+   ],
+   "size": 15874675,
+   "dbsize": 32915456,
+   "sha256": "b88b894f7f56fa1588e4486b3d5d616dd647ac46393ccdc3ba1580df9696a76f",
+   "built": "2026-11-27",
+   "nodes": 161752,
+   "segs": 204454,
+   "places": 87095,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/chennai.db.gz"
+  },
+  {
+   "id": "coimbatore",
+   "name": "Coimbatore",
+   "state": "Tamil Nadu",
+   "bbox": [
+    76.9,
+    10.95,
+    77.1,
+    11.1
+   ],
+   "size": 4025403,
+   "dbsize": 8306688,
+   "sha256": "c35bc9438d8f751ca226ab18b3cf507f8cde61e447926795316e5cf2a7e31501",
+   "built": "2026-11-27",
+   "nodes": 49978,
+   "segs": 63624,
+   "places": 16304,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/coimbatore.db.gz"
+  },
+  {
+   "id": "madurai",
+   "name": "Madurai",
+   "state": "Tamil Nadu",
+   "bbox": [
+    78.05,
+    9.85,
+    78.2,
+    10.0
+   ],
+   "size": 2347906,
+   "dbsize": 4767744,
+   "sha256": "176ed7d43ed890ab65331dde920fce6cadcf9dd9e718b044f9b30b72b2aa13d8",
+   "built": "2026-11-27",
+   "nodes": 29529,
+   "segs": 38856,
+   "places": 8329,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/madurai.db.gz"
+  },
+  {
+   "id": "hyderabad",
+   "name": "Hyderabad",
+   "state": "Telangana",
+   "bbox": [
+    78.2,
+    17.2,
+    78.65,
+    17.6
+   ],
+   "size": 23424321,
+   "dbsize": 48713728,
+   "sha256": "22a2eea7054c299ef3d609a76bed32fab15f147c6609a2a0ac7073418b5d0cfa",
+   "built": "2026-11-27",
+   "nodes": 289813,
+   "segs": 378369,
+   "places": 90736,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/hyderabad.db.gz"
+  },
+  {
+   "id": "agra",
+   "name": "Agra",
+   "state": "Uttar Pradesh",
+   "bbox": [
+    77.9,
+    27.1,
+    78.1,
+    27.25
+   ],
+   "size": 3190049,
+   "dbsize": 6369280,
+   "sha256": "8346f10e045106dcb243147fb4fb148d39543ce03d9956b9f7a8b7da6e814f9f",
+   "built": "2026-11-27",
+   "nodes": 42650,
+   "segs": 55793,
+   "places": 9458,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/agra.db.gz"
+  },
+  {
+   "id": "kanpur",
+   "name": "Kanpur",
+   "state": "Uttar Pradesh",
+   "bbox": [
+    80.25,
+    26.35,
+    80.45,
+    26.55
+   ],
+   "size": 3861655,
+   "dbsize": 7794688,
+   "sha256": "de525b49737a35452bef5b2ee90f9728166723cfb62485c698483a0996341bd4",
+   "built": "2026-11-27",
+   "nodes": 51920,
+   "segs": 70709,
+   "places": 9882,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/kanpur.db.gz"
+  },
+  {
+   "id": "lucknow",
+   "name": "Lucknow",
+   "state": "Uttar Pradesh",
+   "bbox": [
+    80.85,
+    26.7,
+    81.1,
+    26.95
+   ],
+   "size": 6668813,
+   "dbsize": 14176256,
+   "sha256": "fd7c543eba94347a4e3d2eee137006283ed20e08bd531262ee315019067843ba",
+   "built": "2026-11-27",
+   "nodes": 83466,
+   "segs": 112861,
+   "places": 24767,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/lucknow.db.gz"
+  },
+  {
+   "id": "meerut",
+   "name": "Meerut",
+   "state": "Uttar Pradesh",
+   "bbox": [
+    77.6,
+    28.9,
+    77.8,
+    29.1
+   ],
+   "size": 2026488,
+   "dbsize": 4161536,
+   "sha256": "6c4b47dc839c163736daa48eb9f5c262316d7c9dc661d45bb797ecf9642eb1c6",
+   "built": "2026-11-27",
+   "nodes": 25798,
+   "segs": 35080,
+   "places": 7157,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/meerut.db.gz"
+  },
+  {
+   "id": "prayagraj",
+   "name": "Prayagraj",
+   "state": "Uttar Pradesh",
+   "bbox": [
+    81.75,
+    25.35,
+    81.95,
+    25.55
+   ],
+   "size": 2248453,
+   "dbsize": 4521984,
+   "sha256": "0f47f85d98e857f0d809ce3753fd6c2ae37b240a131f05ff355ddc7efafcd683",
+   "built": "2026-11-27",
+   "nodes": 28907,
+   "segs": 37782,
+   "places": 7285,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/prayagraj.db.gz"
+  },
+  {
+   "id": "varanasi",
+   "name": "Varanasi",
+   "state": "Uttar Pradesh",
+   "bbox": [
+    82.9,
+    25.25,
+    83.1,
+    25.4
+   ],
+   "size": 3247973,
+   "dbsize": 6414336,
+   "sha256": "d8ac50e9fd5555c3a122cf79b2cc0ad0bbb1ace4812a76b64c268b267c89f21b",
+   "built": "2026-11-27",
+   "nodes": 41319,
+   "segs": 51053,
+   "places": 10340,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/varanasi.db.gz"
+  },
+  {
+   "id": "dehradun",
+   "name": "Dehradun",
+   "state": "Uttarakhand",
+   "bbox": [
+    77.95,
+    30.25,
+    78.15,
+    30.4
+   ],
+   "size": 2610185,
+   "dbsize": 5148672,
+   "sha256": "79764bab0d3f5f9c4e0728bdad6a5a4c34799475e6f98eb0b225d69b701c3141",
+   "built": "2026-11-27",
+   "nodes": 31319,
+   "segs": 36403,
+   "places": 9356,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/dehradun.db.gz"
+  },
+  {
+   "id": "kolkata",
+   "name": "Kolkata",
+   "state": "West Bengal",
+   "bbox": [
+    88.2,
+    22.4,
+    88.55,
+    22.75
+   ],
+   "size": 16406950,
+   "dbsize": 33185792,
+   "sha256": "0a3e12884c90c5fe56c504692a84333f579495f010466e7ca125eca35a149f67",
+   "built": "2026-11-27",
+   "nodes": 178096,
+   "segs": 223008,
+   "places": 73756,
+   "url": "https://github.com/sureshift/NoEntryNavigation/releases/download/packs/kolkata.db.gz"
   }
  ]
 }
