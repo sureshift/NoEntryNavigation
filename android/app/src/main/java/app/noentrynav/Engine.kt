@@ -133,6 +133,27 @@ class Engine(private val ctx: Context) : SegStore {
     }
 
     class NeedPack(val id: String) : Exception("Download a map to start")
+    /** The start or destination is not on the map that is loaded: the trip maps have to be fetched first. */
+    class OutsideMap(msg: String) : RuntimeException(msg)
+
+    private var bMinLat = 0.0; private var bMaxLat = 0.0; private var bMinLon = 0.0; private var bMaxLon = 0.0
+    /** True when [p] lies inside the area of the map that is loaded now. */
+    fun covers(p: LatLon, margin: Double = 0.005): Boolean =
+        ::graph.isInitialized && graph.nNodes > 0 && p.lat >= bMinLat - margin && p.lat <= bMaxLat + margin && p.lon >= bMinLon - margin && p.lon <= bMaxLon + margin
+
+    /** Replaces the trip map by [newFile] (already complete) and makes it the active map. */
+    fun installRoutePack(newFile: File) {
+        try { db?.close() } catch (_: Exception) {}
+        db = null
+        reportZoneCache.clear()
+        val t = dbFileFor("route")
+        File(t.path + "-journal").delete()
+        t.delete()
+        if (!newFile.renameTo(t)) {
+            newFile.copyTo(t, overwrite = true); newFile.delete()
+        }
+        prefs().edit().putString("pack", "route").apply()
+    }
 
     val packId: String get() = prefs().getString("pack", "delhi-ncr") ?: "delhi-ncr"
     fun dbFileFor(id: String): File = ctx.getDatabasePath(if (id == "delhi-ncr") "delhi.db" else "pack_$id.db")
@@ -175,6 +196,8 @@ class Engine(private val ctx: Context) : SegStore {
     }
 
     suspend fun load() = withContext(Dispatchers.IO) {
+        // a trip map that is gone (cleaned up, damaged) never leaves the app without a map: Delhi is inside the app
+        if (packId != "delhi-ncr" && !dbFileFor(packId).exists() && hasBundledDelhi()) setPack("delhi-ncr")
         val id = packId
         val dbFile = dbFileFor(id)
         val prefs = ctx.getSharedPreferences("noentry", Context.MODE_PRIVATE)
@@ -198,6 +221,7 @@ class Engine(private val ctx: Context) : SegStore {
                 try { db?.close() } catch (_: Exception) {}
                 db = null
                 dbFile.delete()
+                if (hasBundledDelhi()) { setPack("delhi-ncr"); loadGraph(dbFileFor("delhi-ncr")); loadRules(); return@withContext }
                 throw NeedPack(id)            // damaged: download it again
             }
         }
@@ -229,6 +253,7 @@ class Engine(private val ctx: Context) : SegStore {
             }
         }
         graph = Graph(lat, lon, a, b, len, spd, ow, fl, mh, mw)
+        bMinLat = lat.min(); bMaxLat = lat.max(); bMinLon = lon.min(); bMaxLon = lon.max()
         loadSpeedData(db, ns)
     }
 
@@ -469,8 +494,8 @@ class Engine(private val ctx: Context) : SegStore {
     /** Fastest legal route plus up to two alternatives that use different roads. */
     suspend fun routes(from: LatLon, to: LatLon, v: Vehicle): List<Route> = withContext(Dispatchers.Default) {
         val prof = Profile(true, v.height, v.weight, v.speedFactor)
-        val so = snap(from, prof) ?: throw RuntimeException("The start point is outside the Delhi map data.")
-        val sd = snap(to, prof) ?: throw RuntimeException("That destination is outside the Delhi map data.")
+        val so = snap(from, prof) ?: throw OutsideMap("The start point is outside the loaded map.")
+        val sd = snap(to, prof) ?: throw OutsideMap("That destination is outside the loaded map.")
         val active = zonesFor(v.key)
         val applied = active.map { Pair(it.id, it.name) }
         val blocked = Planner.blockedSegs(graph, active, so.proj, sd.proj)

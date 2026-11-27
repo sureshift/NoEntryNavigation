@@ -12,6 +12,7 @@ import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -40,13 +41,12 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     init {
         _s.update { it.copy(crash = CrashLog.take(app)) }
         load()
-        refreshCatalog()
         startTicker()
     }
 
-    private fun load() {
-        _s.update { it.copy(loadError = null, message = "Loading offline Delhi map… (first start takes a minute)") }
-        viewModelScope.launch {
+    private fun load(): kotlinx.coroutines.Job {
+        _s.update { it.copy(loadError = null, message = "Loading offline map… (first start takes a minute)") }
+        return viewModelScope.launch {
             try {
                 engine.load()
                 val warn = engine.ruleWarnings
@@ -62,9 +62,8 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                 _s.update { it.copy(feedUpdated = engine.feedUpdated) }
                 // pick up new gazette notifications / diversions in the background (at most every 6 hours)
                 if (System.currentTimeMillis() - engine.lastFeedCheck() > 6 * 3600_000L) refreshFeed(manual = false)
-            } catch (e: Engine.NeedPack) {
-                _s.update { it.copy(ready = false, message = null, loadError = null, needPack = true, screen = Screen.MAPS, installed = engine.installedPacks(), packId = engine.packId) }
-                refreshCatalog()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 _s.update { it.copy(ready = false, message = null, loadError = e.message ?: "Map data could not be loaded") }
             }
@@ -73,59 +72,152 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
     fun retryLoad() = load()
 
-    // ---- offline city maps ----
-    fun refreshCatalog() {
-        viewModelScope.launch {
-            val c = try { Packs.catalog(app) } catch (_: Throwable) { null }
-            _s.update { it.copy(catalog = c ?: it.catalog, installed = engine.installedPacks(), packId = engine.packId) }
+    // ---- route-driven maps ----
+    private var tripJob: kotlinx.coroutines.Job? = null
+    private var tripRetry: (() -> Unit)? = null
+    private var lastLocalTry = 0L
+
+    private fun setTrip(text: String?, pct: Int = 0, failed: Boolean = false) =
+        _s.update { it.copy(trip = text?.let { t -> TripState(t, pct, failed) }) }
+
+    private fun nprefs() = app.getSharedPreferences("noentry", Context.MODE_PRIVATE)
+    private fun routeDir(): java.io.File = engine.dbFileFor("route").parentFile!!
+
+    fun retryTrip() { tripRetry?.invoke() }
+
+    /** The start or the destination is not on the loaded map: fetch the tiles along the route in driving order, then route. */
+    private fun planTrip(from: LatLon, dest: LatLon, thenStart: Boolean) {
+        tripJob?.cancel()
+        tripRetry = { planTrip(from, dest, thenStart) }
+        tripJob = viewModelScope.launch {
+            val dir = routeDir()
+            val work = java.io.File(dir, "pack_route.db.new")
+            var mdb: android.database.sqlite.SQLiteDatabase? = null
+            try {
+                _s.update { it.copy(busy = true, message = null) }
+                setTrip("Planning your route…")
+                val bb = Backbone.get(app) { pct -> setTrip("Getting the India highway index (one time)", pct) }
+                    ?: throw IllegalStateException("Connect to the internet once to plan a trip outside the loaded map.")
+                val poly = bb.route(from, dest) ?: throw IllegalStateException("No highway route was found between these places.")
+                val idx = TripMaps.index(app) ?: throw IllegalStateException("The map index is not available. Check your internet connection.")
+                val reqs = TripMaps.corridor(poly, idx, from, dest)
+                if (reqs.isEmpty()) throw IllegalStateException("There is no map data for this area yet.")
+                val need = TripMaps.estimateBytes(reqs, idx) * 2 + 30_000_000L
+                if (dir.usableSpace < need) throw IllegalStateException("Not enough free storage: about ${need / 1_000_000} MB is needed for this trip.")
+                TripMaps.tilesDir(app).listFiles()?.forEach { it.delete() }
+                val keepNames = setOf("L2_${TripMaps.tileId(from)}.db", "L2_${TripMaps.tileId(dest)}.db")
+                val db = TripMaps.mergeStart(work)
+                mdb = db
+                val total = reqs.size
+                var done = 0
+                val sem = kotlinx.coroutines.sync.Semaphore(3)
+                kotlinx.coroutines.coroutineScope {
+                    val jobs = reqs.map { r -> async(kotlinx.coroutines.Dispatchers.IO) { sem.acquire(); try { TripMaps.fetch(app, idx, r) } finally { sem.release() } } }
+                    for ((i, j) in jobs.withIndex()) {
+                        val f = j.await()
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { TripMaps.mergeAdd(db, f) }
+                        done++
+                        if (i == 0 && !engine.covers(from)) {
+                            // the start area is ready first: show it at once while the rest keeps downloading
+                            val first = java.io.File(dir, "pack_route.db.first")
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { f.copyTo(first, overwrite = true) }
+                            engine.installRoutePack(first)
+                            nprefs().edit().putBoolean("route_local", true).apply()
+                            _s.update { it.copy(ready = false) }
+                            load().join()
+                            mapController.flyTo(from, 13.0)
+                        }
+                        if (f.name !in keepNames) f.delete()
+                        setTrip("Preparing the map along your route · $done of $total", done * 100 / total)
+                    }
+                }
+                db.close(); mdb = null
+                engine.installRoutePack(work)
+                nprefs().edit().putBoolean("route_local", false).apply()
+                setTrip("Loading the map…", 100)
+                _s.update { it.copy(ready = false) }
+                load().join()
+                setTrip(null)
+                requestRoute(thenStart = thenStart, tripDone = true)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                try { mdb?.close() } catch (_: Exception) {}
+                work.delete()
+                setTrip(null)
+                throw e
+            } catch (e: Throwable) {
+                try { mdb?.close() } catch (_: Exception) {}
+                work.delete()
+                _s.update { it.copy(busy = false) }
+                val m = e.message ?: "Could not prepare the map"
+                setTrip(if ((m).contains("ENOSPC", true)) "Not enough free storage for this trip." else m, 0, true)
+            }
         }
     }
 
-    fun showMaps(show: Boolean, suggest: String? = null) {
-        if (!show && _s.value.needPack) return           // nothing to go back to yet
-        _s.update { it.copy(screen = if (show) Screen.MAPS else Screen.MAP, packSuggest = if (show) suggest else null, results = emptyList(), editing = null, message = null, packNote = null) }
-        if (show) refreshCatalog()
-    }
+    private fun inDelhi(p: LatLon) = p.lat in 28.40..28.88 && p.lon in 76.84..77.35
 
-    fun downloadPack(id: String) {
-        val st = _s.value
-        val p = st.catalog.firstOrNull { it.id == id } ?: return
-        if (st.packBusy != null) return
-        _s.update { it.copy(packBusy = id, packPct = 0, packNote = null) }
-        viewModelScope.launch {
-            val err = Packs.download(app, engine, p) { pct -> _s.update { it.copy(packPct = pct) } }
-            _s.update { it.copy(packBusy = null, packNote = err, installed = engine.installedPacks()) }
-            if (err == null) usePack(id)
-        }
-    }
-
-    fun usePack(id: String) {
-        if (id == engine.packId && _s.value.ready) { showMaps(false); return }
-        val c = _s.value.catalog.firstOrNull { it.id == id }
-        engine.setPack(id)
-        _s.update {
-            it.copy(
-                ready = false, needPack = false, screen = Screen.MAP, packId = id, packSuggest = null,
-                route = null, routes = emptyList(), origin = null, dest = null, originName = "", destName = "",
-                roads = null, results = emptyList(), pin = null, editing = null
-            )
-        }
-        load()
-        (c?.center ?: if (id == "delhi-ncr") LatLon(28.6139, 77.2090) else null)?.let { mapController.flyTo(it, 11.0) }
-    }
-
-    /** After a trip: keep only the map where the driver is now, delete the other downloaded maps. */
+    /** After a trip: keep only the map around where the driver is now. */
     fun cleanMaps() {
         val st = _s.value
-        if (st.packBusy != null || st.needPack) return
-        val here = st.me?.let { m -> st.catalog.firstOrNull { it.contains(m) }?.id } ?: engine.packId
-        val removed = engine.pruneMaps(setOf(here, engine.packId))
-        if (removed > 0) _s.update { it.copy(installed = engine.installedPacks()) }
+        if (st.trip != null && !st.trip.failed) return
+        viewModelScope.launch {
+            try {
+                val tiles = TripMaps.tilesDir(app)
+                if (engine.packId != "route") { tiles.listFiles()?.forEach { it.delete() }; return@launch }
+                if (nprefs().getBoolean("route_local", false)) return@launch
+                val here = _s.value.me ?: _s.value.origin ?: return@launch            // position unknown: keep what is there
+                if (inDelhi(here)) {
+                    engine.setPack("delhi-ncr")
+                    engine.dbFileFor("route").delete()
+                    tiles.listFiles()?.forEach { it.delete() }
+                    nprefs().edit().putBoolean("route_local", false).apply()
+                    _s.update { it.copy(ready = false) }
+                    load().join()
+                    return@launch
+                }
+                val idx = TripMaps.index(app) ?: return@launch
+                val id = TripMaps.tileId(here)
+                if (id !in idx.t) return@launch
+                val f = TripMaps.fetch(app, idx, TripMaps.Req(id, true))
+                val copy = java.io.File(routeDir(), "pack_route.db.new")
+                f.copyTo(copy, overwrite = true)
+                tiles.listFiles()?.filter { it != f }?.forEach { it.delete() }
+                engine.installRoutePack(copy)
+                nprefs().edit().putBoolean("route_local", true).apply()
+                _s.update { it.copy(ready = false) }
+                load().join()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Throwable) { }
+        }
     }
 
-    fun deletePack(id: String) {
-        if (engine.deletePack(id)) _s.update { it.copy(installed = engine.installedPacks()) }
-        else _s.update { it.copy(packNote = "Switch to another map before deleting this one.") }
+    /** The phone is somewhere the loaded map does not cover (for example the app is opened in Pune): fetch the full-detail tile around it. */
+    private fun ensureLocalMap(p: LatLon) {
+        val st = _s.value
+        if (!st.ready || st.navigating || st.trip != null || st.dest != null || st.origin != null) return
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastLocalTry < 60_000 || engine.covers(p)) return
+        lastLocalTry = now
+        viewModelScope.launch {
+            try {
+                val idx = TripMaps.index(app) ?: return@launch
+                val id = TripMaps.tileId(p)
+                if (id !in idx.t) return@launch
+                val f = TripMaps.fetch(app, idx, TripMaps.Req(id, true))
+                if (_s.value.dest != null || _s.value.navigating) return@launch
+                val copy = java.io.File(routeDir(), "pack_route.db.new")
+                f.copyTo(copy, overwrite = true)
+                TripMaps.tilesDir(app).listFiles()?.filter { it != f }?.forEach { it.delete() }
+                engine.installRoutePack(copy)
+                nprefs().edit().putBoolean("route_local", true).apply()
+                _s.update { it.copy(ready = false) }
+                load().join()
+                mapController.flyTo(p, 14.0)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Throwable) { }
+        }
     }
 
     /** Fetch new gazette notifications and Delhi Traffic Police diversions / temporary no-entry from the online feed. */
@@ -257,7 +349,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                 speedKph = if (loc.hasSpeed()) (loc.speed * 3.6f).toInt() else it.speedKph
             )
         }
-        if (_s.value.navigating) updateProgress(p)
+        if (_s.value.navigating) updateProgress(p) else ensureLocalMap(p)
     }
 
     // ---------- UI actions ----------
@@ -274,17 +366,12 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         if (q.isBlank()) { _s.update { it.copy(results = emptyList(), busy = false, message = null) }; return }
         searchJob = viewModelScope.launch {
             try {
-                val near = _s.value.me ?: _s.value.origin ?: _s.value.catalog.firstOrNull { it.id == engine.packId }?.center ?: LatLon(28.6139, 77.2090)
+                val near = _s.value.me ?: _s.value.origin ?: LatLon(28.6139, 77.2090)
                 val r = engine.search(q.trim(), near)
                 val low = q.trim().lowercase()
-                val cities = if (low.length >= 3) _s.value.catalog.filter { p ->
-                    p.id != engine.packId && (p.name.lowercase().startsWith(low) || p.name.lowercase().contains(" $low") || p.state.lowercase().startsWith(low))
-                }.take(3).map { p ->
-                    Place(p.name, p.center, "pack:${p.id}", (if (p.id in _s.value.installed) "Offline map on this phone · tap to open" else "Tap to download the offline map (${p.size / 1_000_000 + 1} MB)"), "")
-                } else emptyList()
-                val known = (cities.map { it.name.lowercase() } + r.filter { it.kind in setOf("city", "town") }.map { it.name.lowercase() }).toSet()
+                val known = (r.filter { it.kind in setOf("city", "town") }.map { it.name.lowercase() }).toSet()
                 val india = engine.searchCities(q).filter { it.name.lowercase() !in known }
-                val all = cities + r.filter { it.kind in setOf("city", "town") } + india + r.filter { it.kind !in setOf("city", "town") }
+                val all = r.filter { it.kind in setOf("city", "town") } + india + r.filter { it.kind !in setOf("city", "town") }
                 _s.update { it.copy(busy = false, results = all, message = if (all.isEmpty()) "Nothing found offline. Try \"Search online\"." else null) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -300,7 +387,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         searchJob = viewModelScope.launch {
             _s.update { it.copy(busy = true, message = null) }
             try {
-                val r = engine.searchOnline(q, _s.value.me ?: _s.value.catalog.firstOrNull { it.id == engine.packId }?.center ?: LatLon(28.6139, 77.2090))
+                val r = engine.searchOnline(q, _s.value.me ?: LatLon(28.6139, 77.2090))
                 _s.update { it.copy(busy = false, results = r, message = if (r.isEmpty()) "OpenStreetMap found nothing for that." else null) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -319,18 +406,6 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
 
     /** A search result was tapped: it becomes the start or the destination depending on the field being edited. */
     fun pickPlace(p: Place) {
-        if (p.kind.startsWith("pack:")) {
-            val id = p.kind.removePrefix("pack:")
-            if (id in _s.value.installed) usePack(id) else showMaps(true, id)
-            return
-        }
-        // a place in another city: open the maps page so the city can be downloaded
-        val st = _s.value
-        val here = st.catalog.firstOrNull { it.id == st.packId }
-        if (here != null && !here.contains(p.pos)) {
-            val other = st.catalog.firstOrNull { it.contains(p.pos) }
-            if (other != null) { _s.update { it.copy(results = emptyList(), editing = null) }; if (other.id in st.installed) usePack(other.id) else showMaps(true, other.id); return }
-        }
         val name = p.name
         if (_s.value.editing == Field.FROM) setOrigin(p.pos, name) else setDestination(p.pos, name)
     }
@@ -577,6 +652,8 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     }
 
     fun clearRoute() {
+        tripJob?.cancel(); tripJob = null
+        _s.update { it.copy(trip = null, busy = false) }
         _s.update { it.copy(dest = null, destName = "", origin = null, originName = "", route = null, routes = emptyList(), message = null, editing = null, pin = null) }
         cleanMaps()
     }
@@ -590,7 +667,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
         }
     }
 
-    fun requestRoute(auto: Boolean = false, thenStart: Boolean = false) {
+    fun requestRoute(auto: Boolean = false, thenStart: Boolean = false, tripDone: Boolean = false) {
         val st = _s.value
         val dest = st.dest ?: return
         if (!st.ready) return
@@ -599,6 +676,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
             _s.update { it.copy(message = "Waiting for GPS fix… or set a start point.") }
             return
         }
+        if (!tripDone && !(engine.covers(from) && engine.covers(dest))) { planTrip(from, dest, thenStart); return }
         viewModelScope.launch {
             _s.update { it.copy(busy = true, message = null) }
             try {
@@ -617,6 +695,11 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
                     _s.value.me?.let { updateProgress(it) }
                 }
                 if (thenStart) startNav()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Engine.OutsideMap) {
+                if (tripDone) _s.update { it.copy(busy = false, message = "No road was found near the start or the destination in the downloaded map.") }
+                else planTrip(from, dest, thenStart)
             } catch (e: Throwable) {
                 _s.update { it.copy(busy = false, message = e.message ?: "Routing failed") }
             }

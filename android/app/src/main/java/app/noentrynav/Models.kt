@@ -132,7 +132,7 @@ val VEHICLES = listOf(
 )
 
 enum class Field { FROM, TO }
-enum class Screen { MAP, RULES, FORM, MAPS }
+enum class Screen { MAP, RULES, FORM }
 enum class ReportStep { NONE, START, END, DETAILS }
 
 data class UiState(
@@ -180,24 +180,12 @@ data class UiState(
     val speedKph: Int = 0,
     val camDistM: Double = -1.0,     // distance to the next camera on the route, -1 = none close
     val camLimit: Int = 0,
-    val catalog: List<PackInfo> = emptyList(),   // downloadable city maps
-    val installed: Set<String> = emptySet(),
-    val packId: String = "delhi-ncr",
-    val packBusy: String? = null,
-    val packPct: Int = 0,
-    val packNote: String? = null,
-    val packSuggest: String? = null,
-    val needPack: Boolean = false
+    val trip: TripState? = null
 )
 
-/** A downloadable offline city map (see tools/regions.json and feed/catalog.json). */
-data class PackInfo(
-    val id: String, val name: String, val state: String, val bbox: DoubleArray,
-    val size: Long, val dbsize: Long, val sha256: String, val url: String
-) {
-    fun contains(p: LatLon) = p.lon in bbox[0]..bbox[2] && p.lat in bbox[1]..bbox[3]
-    val center get() = LatLon((bbox[1] + bbox[3]) / 2, (bbox[0] + bbox[2]) / 2)
-}
+/** Progress of the route-driven map download. [failed] shows a Retry button. */
+data class TripState(val text: String, val pct: Int = 0, val failed: Boolean = false)
+
 
 /** GeoJSON MultiLineString features for the offline road layers (major, main, local). */
 class Roads(val major: String, val main: String, val local: String, val names: String = "", val places: String = "")
