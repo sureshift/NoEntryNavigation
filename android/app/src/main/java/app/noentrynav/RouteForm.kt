@@ -100,8 +100,8 @@ fun RouteFormScreen(s: UiState, vm: NavViewModel) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("Send to Sure Shift for approval", color = C.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Approved roads reach every driver's phone.", color = C.Muted, fontSize = 12.sp)
+                            Text("Send to admin", color = C.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Turned on by default. Roads the admin approves reach every driver.", color = C.Muted, fontSize = 12.sp)
                         }
                         androidx.compose.material3.Switch(checked = share, onCheckedChange = { share = it; vm.setShareReports(it) })
                     }

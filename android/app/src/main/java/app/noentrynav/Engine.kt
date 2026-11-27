@@ -526,7 +526,7 @@ class Engine(private val ctx: Context) : SegStore {
         if (len > 8000.0 || len > maxOf(1500.0, straight * 3.0)) return null          // the two points are not on one road
         val segs = pieces.filter { it.seg >= 0 }.map { it.seg }.distinct().toIntArray()
         return Zone(
-            nextReportZoneId++, "U-${r.id}", r.name.ifBlank { "Driver-reported no-entry" }, if (r.id.startsWith("C-S")) "Verified by Sure Shift" else "Driver report",
+            nextReportZoneId++, "U-${r.id}", r.name.ifBlank { "Driver-reported no-entry" }, if (r.id.startsWith("C-S")) "Verified by admin" else "Driver report",
             emptyList(), segs, r.vehicles, (1..7).toSet(), r.windows, 0, 99999999, true, r.id
         )
     }
