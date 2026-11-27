@@ -431,6 +431,14 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
     fun shareReportsOn(): Boolean = engine.shareReportsOn()
     fun setShareReports(on: Boolean) = engine.setShareReports(on)
 
+    fun renameReport(id: String, name: String) {
+        viewModelScope.launch {
+            engine.renameReport(id, name)
+            _s.update { it.copy(allZones = engine.allZones) }
+            refreshZones()
+        }
+    }
+
     fun clearFormPoints() { _s.update { it.copy(reportA = null, reportB = null) } }
 
     fun showRules(show: Boolean) { _s.update { it.copy(screen = if (show) Screen.RULES else Screen.MAP) } }
@@ -523,7 +531,7 @@ class NavViewModel(private val app: Application) : AndroidViewModel(app), TextTo
             if (!_s.value.ready) return@launch
             val sr = engine.parseSharedRoute(text)
             val n = try { engine.importReports(text) } catch (_: Exception) { -1 }
-            if (sr == null && n < 0) { _s.update { it.copy(message = "That message has no NoEntry Nav route or reports.") }; return@launch }
+            if (sr == null && n < 0) { _s.update { it.copy(message = "That message has no ROUTIQ route or reports.") }; return@launch }
             val veh = VEHICLES.firstOrNull { it.key == sr?.veh } ?: _s.value.vehicle
             _s.update {
                 it.copy(

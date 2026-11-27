@@ -1,4 +1,4 @@
-# NoEntry Nav — Delhi navigation for LCV, MCV and HCV trucks
+# ROUTIQ — truck navigation with no-entry rules for LCV, MCV and HCV
 
 Maps, routing and rules run on the phone and work fully offline. The only internet use is an optional update check
 (`feed/updates.json` from this repo) for new gazette notifications, diversions and temporary no-entry. See `feed/README.md`.

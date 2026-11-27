@@ -115,7 +115,7 @@ class Route(
 }
 
 /** A driver-reported no-entry stretch: from point [a] to point [b] along one road. */
-class Report(
+data class Report(
     val id: String,
     val name: String,
     val a: LatLon,

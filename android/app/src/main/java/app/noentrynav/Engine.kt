@@ -587,15 +587,68 @@ class Engine(private val ctx: Context) : SegStore {
     suspend fun addReport(
         a: LatLon, b: LatLon, vehicles: Set<String>, windows: List<IntArray>, name: String
     ): String? = withContext(Dispatchers.IO) {
-        val r = Report("U" + System.currentTimeMillis().toString(36), name.trim(), a, b, vehicles, windows, System.currentTimeMillis())
-        val z = try { reportZone(r) } catch (_: Exception) { null }
+        var r = Report("U" + System.currentTimeMillis().toString(36), name.trim(), a, b, vehicles, windows, System.currentTimeMillis())
+        var z = try { reportZone(r) } catch (_: Exception) { null }
             ?: return@withContext "Start and end must be on the same road, within a few km of each other. Try placing them closer to the road."
+        if (r.name.isBlank()) {                       // a memorable name, so the driver can find, edit or delete it later
+            r = r.copy(name = autoName(r, z))
+            z = try { reportZone(r) } catch (_: Exception) { null } ?: z
+        }
         reports.add(r)
         reportZoneCache[r.id] = z
         saveReports()
         rebuildZones()
         queueOutbox(r)
         null
+    }
+
+    /** "Najafgarh Road near Dwarka Mor" - the road of the stretch plus the closest chowk / locality / landmark. */
+    private fun autoName(r: Report, z: Zone): String {
+        var road = ""
+        try {
+            val ids = (z.segs ?: IntArray(0)).take(60).joinToString(",")
+            if (ids.isNotEmpty()) {
+                val count = HashMap<String, Int>()
+                d().rawQuery("SELECT name FROM seg WHERE id IN ($ids) AND name IS NOT NULL AND name <> ''", null).use { c ->
+                    while (c.moveToNext()) count.merge(c.getString(0), 1, Int::plus)
+                }
+                road = count.maxByOrNull { it.value }?.key ?: ""
+            }
+        } catch (_: Exception) {}
+        var near = ""
+        try {
+            val dl = 0.006
+            var best = Double.MAX_VALUE
+            d().rawQuery(
+                "SELECT name, kind, lat, lon FROM place WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND kind <> 'street' LIMIT 300",
+                arrayOf((r.a.lat - dl).toString(), (r.a.lat + dl).toString(), (r.a.lon - dl).toString(), (r.a.lon + dl).toString())
+            ).use { c ->
+                while (c.moveToNext()) {
+                    val k = c.getString(1) ?: ""
+                    val w = when (k) { "chowk" -> 0.4; "suburb", "neighbourhood", "locality", "quarter", "village", "town", "colony" -> 0.7; else -> 1.0 }
+                    val dd = Geo.dist(r.a, LatLon(c.getDouble(2), c.getDouble(3))) * w
+                    if (dd < best) { best = dd; near = c.getString(0) ?: "" }
+                }
+            }
+        } catch (_: Exception) {}
+        val date = java.text.SimpleDateFormat("d MMM", Locale.ENGLISH).format(java.util.Date())
+        val nm = when {
+            road.isNotBlank() && near.isNotBlank() && !near.equals(road, true) -> "$road near $near"
+            road.isNotBlank() -> "$road no-entry"
+            near.isNotBlank() -> "No-entry near $near"
+            else -> "No-entry $date"
+        }
+        return nm.take(60)
+    }
+
+    suspend fun renameReport(id: String, name: String) = withContext(Dispatchers.IO) {
+        if (id.startsWith("C-")) return@withContext
+        val i = reports.indexOfFirst { it.id == id }
+        if (i < 0 || name.isBlank()) return@withContext
+        reports[i] = reports[i].copy(name = name.trim().take(60))
+        reportZoneCache.remove(id)
+        saveReports()
+        rebuildZones()
     }
 
     suspend fun deleteReport(id: String) = withContext(Dispatchers.IO) {
@@ -610,7 +663,7 @@ class Engine(private val ctx: Context) : SegStore {
     fun exportReports(): String {
         val arr = JSONArray()
         reports.filter { !it.id.startsWith("C-") }.forEach { arr.put(reportToJson(it)) }
-        return "NoEntry Nav driver reports. Copy this whole message, open NoEntry Nav > Rules > Import.\n" +
+        return "ROUTIQ driver reports. Copy this whole message, open ROUTIQ > Rules > Import.\n" +
             JSONObject().put("noentry_reports", arr).toString()
     }
 
@@ -622,8 +675,8 @@ class Engine(private val ctx: Context) : SegStore {
         reports.filter { !it.id.startsWith("C-") }.forEach { arr.put(reportToJson(it)) }
         val rt = JSONObject().put("from", JSONArray().put(from.lat).put(from.lon)).put("fn", fromName)
             .put("to", JSONArray().put(to.lat).put(to.lon)).put("tn", toName).put("veh", veh.key)
-        return "NoEntry Nav route: $fromName to $toName ($summary, ${veh.label}).\n" +
-            "Open this message in NoEntry Nav (Share > NoEntry Nav, or copy it and use Rules > Import). " +
+        return "ROUTIQ route: $fromName to $toName ($summary, ${veh.label}).\n" +
+            "Open this message in ROUTIQ (Share > ROUTIQ, or copy it and use Rules > Import). " +
             "Then add any no-entry roads you know on this route and share it back.\n" +
             JSONObject().put("noentry_route", rt).put("noentry_reports", arr).toString()
     }

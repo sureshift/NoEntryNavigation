@@ -88,9 +88,9 @@ fun RouteFormScreen(s: UiState, vm: NavViewModel) {
                     wins.forEachIndexed { i, w -> SelChip(w, win == i, Modifier.weight(1f)) { win = i } }
                 }
                 Spacer(Modifier.height(12.dp))
-                Text("5. Road name (optional)", color = C.Muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("5. Name it (optional - we pick one for you)", color = C.Muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(6.dp))
-                FieldBox(name, "e.g. Ring Road near Naraina", { name = it.take(60) }, Modifier.fillMaxWidth())
+                FieldBox(name, "e.g. Najafgarh Road near Dwarka Mor", { name = it.take(60) }, Modifier.fillMaxWidth())
                 if (vm.communityOn()) {
                     var share by remember { mutableStateOf(vm.shareReportsOn()) }
                     Spacer(Modifier.height(12.dp))
@@ -120,13 +120,29 @@ fun RouteFormScreen(s: UiState, vm: NavViewModel) {
                 if (mine.isEmpty()) Text("None yet. Roads you add appear here and travel with Share route.", color = C.Muted, fontSize = 14.sp)
                 mine.forEach { z ->
                     Spacer(Modifier.height(8.dp))
+                    var editing by remember(z.reportId) { mutableStateOf(false) }
+                    var newName by remember(z.reportId) { mutableStateOf(z.name) }
                     Surface(shape = RoundedCornerShape(14.dp), color = Color.White, border = BorderStroke(1.dp, C.Line), modifier = Modifier.fillMaxWidth()) {
-                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(z.name, color = C.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                                Text(z.vehicles.joinToString(" ") { it.uppercase() } + " · " + z.windowText(), color = C.Muted, fontSize = 13.sp)
+                        Column(Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(z.name, color = C.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(z.vehicles.joinToString(" ") { it.uppercase() } + " · " + z.windowText(), color = C.Muted, fontSize = 13.sp)
+                                }
+                                Box(Modifier.clip(RoundedCornerShape(10.dp)).clickable { editing = !editing }.padding(horizontal = 10.dp, vertical = 8.dp)) {
+                                    Text("Rename", color = C.Primary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                                Box(Modifier.size(40.dp).clip(CircleShape).clickable { vm.deleteReport(z.reportId) }, contentAlignment = Alignment.Center) { CloseIcon(C.Danger) }
                             }
-                            Box(Modifier.size(40.dp).clip(CircleShape).clickable { vm.deleteReport(z.reportId) }, contentAlignment = Alignment.Center) { CloseIcon(C.Danger) }
+                            if (editing) {
+                                Spacer(Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    FieldBox(newName, "Name", { newName = it.take(60) }, Modifier.weight(1f))
+                                    Box(Modifier.height(48.dp).clip(RoundedCornerShape(14.dp)).background(C.Primary).clickable { vm.renameReport(z.reportId, newName); editing = false }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                                        Text("Save", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
