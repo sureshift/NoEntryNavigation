@@ -2,30 +2,59 @@ name: Build map tiles
 on:
   workflow_dispatch:
     inputs:
-      zone:
-        description: "Geofabrik zone (western-zone, northern-zone, ...)"
-        default: "western-zone"
-      area:
-        description: "Optional area filter minlon,minlat,maxlon,maxlat"
+      only_lat:
+        description: "Optional: build just this band start latitude (e.g. 18). Empty = all India"
         default: ""
-      release:
-        description: "Release tag to upload to"
-        default: "tiles-pilot"
 permissions:
   contents: write
 jobs:
   tiles:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 345
+    strategy:
+      fail-fast: false
+      matrix:
+        lat: [6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36]
+        lon: [[68, 80], [80, 98]]
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y osmium-tool && pip install osmium
+      - name: Gate
+        id: gate
+        run: |
+          if [ -z "${{ github.event.inputs.only_lat }}" ] || [ "${{ github.event.inputs.only_lat }}" = "${{ matrix.lat }}" ]; then echo "run=1" >> $GITHUB_OUTPUT; else echo "run=0" >> $GITHUB_OUTPUT; fi
+      - if: steps.gate.outputs.run == '1'
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool && pip install osmium
       - name: Build tiles
-        run: python tools/build_tiles.py "${{ github.event.inputs.zone }}" out "${{ github.event.inputs.area }}" | tee build.log
-      - name: Upload
+        if: steps.gate.outputs.run == '1'
+        run: |
+          LAT=${{ matrix.lat }}; LAT2=$((LAT+3)); [ "$LAT2" -gt 38 ] && LAT2=38
+          python tools/build_tiles.py "${{ matrix.lon[0] }},$LAT,${{ matrix.lon[1] }},$LAT2" out | tee build.log
+      - name: Upload tiles (one release per 3 degrees of latitude)
+        if: steps.gate.outputs.run == '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "${{ github.event.inputs.release }}" >/dev/null 2>&1 || gh release create "${{ github.event.inputs.release }}" --title "Map tiles" --notes "Map tiles downloaded by the app."
-          ls out/* | xargs -n 40 gh release upload "${{ github.event.inputs.release }}" --clobber
+          TAG="tiles-lat${{ matrix.lat }}"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Map tiles $TAG" --notes "Map tiles downloaded by the app. Do not delete."
+          ls out/*.gz 2>/dev/null | xargs -r -n 40 gh release upload "$TAG" --clobber
+          gh release view tiles-index >/dev/null 2>&1 || gh release create tiles-index --title "Tile index" --notes "Index files"
+          ls out/catalog-*.json 2>/dev/null | xargs -r gh release upload tiles-index --clobber
       - run: grep SUMMARY build.log || true
+        if: steps.gate.outputs.run == '1'
+
+  index:
+    needs: tiles
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild feed/tiles.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p idx
+          gh release download tiles-index --pattern 'catalog-*.json' --dir idx --clobber || true
+          python tools/make_tile_catalog.py idx feed/tiles.json
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add feed/tiles.json
+          git diff --cached --quiet || (git commit -m "Update tile index" && git pull --rebase -q && git push)

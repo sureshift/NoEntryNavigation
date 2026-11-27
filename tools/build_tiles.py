@@ -27,23 +27,21 @@ def sh(*a, check=True, env=None):
     return subprocess.run(list(map(str, a)), check=check, env=env)
 
 
-def get_zone(zone):
-    out = os.path.join(DATA, f'zone-{zone}.pbf')
-    if os.path.exists(out) and os.path.getsize(out) > 1_000_000:
+def get_source():
+    out = os.path.join(DATA, 'india.osm.pbf')
+    if os.path.exists(out) and os.path.getsize(out) > 10_000_000:
         return out
-    for u in (f'https://download.geofabrik.de/asia/india/{zone}-latest.osm.pbf',
-              f'https://ftp5.gwdg.de/pub/misc/openstreetmap/download.geofabrik.de/asia/india/{zone}-latest.osm.pbf'):
+    for u in ('https://download.geofabrik.de/asia/india-latest.osm.pbf',
+              'https://ftp5.gwdg.de/pub/misc/openstreetmap/download.geofabrik.de/asia/india-latest.osm.pbf'):
         r = sh('curl', '-L', '--fail', '--retry', '3', '--retry-delay', '10', '--connect-timeout', '30',
-               '--max-time', '2700', '-A', UA, '-o', out, u, check=False)
-        if r.returncode == 0 and os.path.getsize(out) > 1_000_000:
+               '--max-time', '3000', '-A', UA, '-o', out, u, check=False)
+        if r.returncode == 0 and os.path.getsize(out) > 10_000_000:
             return out
-    raise SystemExit('cannot download ' + zone)
+    raise SystemExit('cannot download the India extract')
 
 
-def tiles_in(zone, area):
-    x0, y0, x1, y1 = ZONES[zone]
-    if area:
-        x0, y0, x1, y1 = max(x0, area[0]), max(y0, area[1]), min(x1, area[2]), min(y1, area[3])
+def tiles_in(area):
+    x0, y0, x1, y1 = area
     out = []
     for y in range(int(math.floor(y0 * 2)), int(math.ceil(y1 * 2))):
         for x in range(int(math.floor(x0 * 2)), int(math.ceil(x1 * 2))):
@@ -72,12 +70,13 @@ def pack(db, gz):
 
 
 def main():
-    zone, outdir = sys.argv[1], sys.argv[2]
-    area = [float(v) for v in sys.argv[3].split(',')] if len(sys.argv) > 3 and sys.argv[3] else None
+    area = [float(v) for v in sys.argv[1].split(',')]     # minlon,minlat,maxlon,maxlat (aligned to the 0.5 degree grid)
+    outdir = sys.argv[2]
     os.makedirs(outdir, exist_ok=True)
     os.makedirs(DATA, exist_ok=True)
-    zpbf = get_zone(zone)
-    tiles = tiles_in(zone, area)
+    zpbf = get_source()
+    zone = 'india'
+    tiles = tiles_in(area)
     print(len(tiles), 'candidate tiles', flush=True)
     stats = []
     for b in range(0, len(tiles), BATCH):
@@ -107,10 +106,10 @@ def main():
                     if s < 20:
                         raise RuntimeError('no roads')
                     gz = os.path.join(outdir, f'{tag}_{tid}.db.gz')
+                    os.makedirs(outdir, exist_ok=True)
                     sha = pack(db, gz)
                     rec[tag] = dict(size=os.path.getsize(gz), dbsize=os.path.getsize(db), sha=sha, nodes=n, segs=s, places=p)
                     os.remove(db)
-                json.dump(rec, open(os.path.join(outdir, f'{tid}.json'), 'w'))
                 stats.append(rec)
                 print('tile', tid, rec['L1']['size'], rec['L2']['size'], flush=True)
             except Exception as ex:
@@ -118,6 +117,7 @@ def main():
             finally:
                 try: os.remove(pbf)
                 except OSError: pass
+    json.dump(stats, open(os.path.join(outdir, 'catalog-%s.json' % sys.argv[1].replace(',', '_')), 'w'))
     l1 = sum(r['L1']['size'] for r in stats); l2 = sum(r['L2']['size'] for r in stats)
     print(f'SUMMARY zone={zone} tiles={len(stats)} L1={l1/1e6:.1f}MB L2={l2/1e6:.1f}MB '
           f'avgL1={l1/max(1,len(stats))/1e6:.2f}MB avgL2={l2/max(1,len(stats))/1e6:.2f}MB', flush=True)
